@@ -6,11 +6,7 @@
 or
 ```buildoutcfg
 >>python train.py --model lgbm --depth 3 --sep_date --dummy_corpus --k 5 --lr 0.04
-```
-or (Neural Prophet)
-```buildoutcfg
->>python train.py --model np --epochs 1000 --n_forecasts 1 --n_lags 10 --n_layer 2 --hidden_size 64 --batch_size 128
-```
+
 ```buildoutcfg
 Categorical Features : [0, 6, 7]
 ========== TRAIN LAUNCH MODEL ==========
@@ -99,7 +95,7 @@ COMPLETED: 14721 data is augmented
 1. **fasttext_model_fn**: fasttext model file path (train new model if path invalid)
 2. **pretrained**: Use pretrained korean language model (supported by fasttext)
 3. **use_tok**: use mecab tokenizing when embedding text data (Avalibable only if mecab installed on your environment)
-4. **dim**: embedding dimension (only woking when using embedding method
+4. **dim**: embedding dimension (only woking when using embedding method)
 5. **min_count**
 6. **window_size**
 7. **min_ngram**
@@ -112,6 +108,7 @@ COMPLETED: 14721 data is augmented
 3. **depth**: growth stop criterion
 4. **verbose**: verbosity
 5. **k**: using k-fold when k > 0
+
 ## LGBM
 1. **num_leaves**: number of leaves limitation for growth stopping
 2. **min_data_in_leaf**: minimum number of data in leaf when the tree growing
