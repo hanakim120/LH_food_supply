@@ -1,12 +1,8 @@
 import argparse
 
-import pandas as pd
-
-from module.np_trainer import train_np
 from module.lgbm_trainer import train_lgbm
 from module.catboost_trainer import train_catboost
 from module.data_loader import get_data
-from utils.prophet_tools import save_np_submission
 
 def define_argparser():
     p = argparse.ArgumentParser()
@@ -16,9 +12,6 @@ def define_argparser():
     # 'embedding' or 'tokenize' or 'raw'
     p.add_argument('--text', type=str, default='embedding',
                    help='Method to preprocess text data (embedding / tokenize / autoencode) ')
-    p.add_argument('--sep_date', action='store_true',
-                   help='When True, it does not use time column as timestamp. '
-                        'it separates the columns with month and week and traet as categorical features')
     p.add_argument('--dummy_corpus', action='store_true',
                    help='making dummy data using random permutation')
     p.add_argument('--seed', type=int, default=0,
@@ -123,15 +116,9 @@ def save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn='ne
 def main(config):
     train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
 
-    print(train_df.head())
     if config.drop_text:
-        train_df = train_df.iloc[:, :10]
-        test_df = test_df.iloc[:, :10]
-
-    if config.model == 'np':
-        train_df = pd.concat([train_df['ds'], train_y], axis=1)
-        valid_df = pd.concat([valid_df['ds'], valid_y], axis=1)
-        test_df = test_df[['ds']]
+        train_df = train_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
+        test_df = test_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
 
     reg_launch, reg_dinner = get_model(config, train_df, valid_df, train_y, valid_y)
 
@@ -139,12 +126,8 @@ def main(config):
 
 if __name__ == '__main__':
     config = define_argparser()
-    if config.model == 'np' :
-        reg_launch, reg_dinner, train_df, valid_df, test_df, sample = main(config)
-        save_np_submission(config, train_df, reg_launch, reg_dinner, sample)
-    else:
-        reg_launch, reg_dinner, _, valid_df, test_df, sample = main(config)
-        save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn=config.model)
+    reg_launch, reg_dinner, _, valid_df, test_df, sample = main(config)
+    save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn=config.model)
 
 
 

@@ -13,7 +13,7 @@ def train_lgbm(train_df,
                valid_y,
                config):
 
-    cat_features = [0, 8, 9] if train_df.columns[8] != 'month' else None
+    cat_features = [0, 7, 8, 9, 13, 15] # 요일, 공휴일전후_0, 공휴일전후_1, 공휴일전후_2, month, week
 
     if config.k > 0:
         kf = KFold(n_splits=config.k, shuffle=True, random_state=42)
@@ -30,7 +30,7 @@ def train_lgbm(train_df,
             print(f'===================================={fold + 1}============================================')
             train_idx, valid_idx = folds[fold]
             X_train, X_valid, y_train, y_valid = train_df.iloc[train_idx], train_df.iloc[valid_idx], \
-                                                 train_y.중식계[train_idx], train_y.중식계[valid_idx]
+                                                 train_y.중식계.iloc[train_idx], train_y.중식계.iloc[valid_idx]
 
             reg_launch_ = LGBMRegressor(
                 objective='regression_l2',
@@ -43,7 +43,7 @@ def train_lgbm(train_df,
                 min_data_in_bin=config.min_data_in_bin,
                 max_cat_threshold=config.max_cat_threshold,
                 metric='mae',
-                num_iterations=config.num_iterations,
+                num_iterations=3000,
                 early_stopping_rounds=100,
                 random_state=config.seed,
             )
@@ -63,7 +63,7 @@ def train_lgbm(train_df,
             scores_launch.append(mae_launch)
 
             # =====================================================
-            y_train, y_valid = train_y.석식계[train_idx], train_y.석식계[valid_idx]
+            y_train, y_valid = train_y.석식계.iloc[train_idx], train_y.석식계.iloc[valid_idx]
 
             reg_dinner_ = LGBMRegressor(
                 objective='regression_l2',
@@ -76,7 +76,7 @@ def train_lgbm(train_df,
                 min_data_in_bin=config.min_data_in_bin,
                 max_cat_threshold=config.max_cat_threshold,
                 metric='mae',
-                num_iterations=config.num_iterations,
+                num_iterations=3000,
                 early_stopping_rounds=100,
                 random_state=config.seed,
             )
@@ -114,7 +114,7 @@ def train_lgbm(train_df,
             min_data_in_bin=config.min_data_in_bin,
             max_cat_threshold=config.max_cat_threshold,
             metric='mae',
-            num_iterations=config.epochs,
+            num_iterations=3000,
             early_stopping_rounds=100,
             random_state=config.seed,
         )
@@ -141,7 +141,7 @@ def train_lgbm(train_df,
             min_data_in_bin=config.min_data_in_bin,
             max_cat_threshold=config.max_cat_threshold,
             metric='mae',
-            num_iterations=config.epochs,
+            num_iterations=3000,
             early_stopping_rounds=100,
             random_state=config.seed,
         )

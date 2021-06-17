@@ -13,8 +13,7 @@ def train_catboost(train_df,
                    train_y,
                    valid_y,
                    config):
-
-    cat_features = [0, 8, 9] if train_df.columns[8] == 'month' else []
+    cat_features = [0, 7, 8, 9, 13, 15]
 
     if config.k > 0 :
         skf = KFold(n_splits=config.k, shuffle=True, random_state=config.seed)
@@ -31,7 +30,7 @@ def train_catboost(train_df,
             print(f'===================================={fold + 1}============================================')
             train_idx, valid_idx = folds[fold]
             X_train, X_valid, y_train, y_valid = train_df.iloc[train_idx], train_df.iloc[valid_idx], \
-                                                 train_y.중식계[train_idx], train_y.중식계[valid_idx]
+                                                 train_y.중식계iloc[train_idx], train_y.중식계.iloc[valid_idx]
 
             train_pool_launch = Pool(X_train, y_train, cat_features=cat_features)
             valid_pool_launch = Pool(X_valid, y_valid, cat_features=cat_features)
@@ -56,7 +55,7 @@ def train_catboost(train_df,
             mae_launch = mean_absolute_error(y_pred_launch, valid_y.중식계)
             scores_launch.append(mae_launch)
 
-            y_train, y_valid = train_y.석식계[train_idx], train_y.석식계[valid_idx]
+            y_train, y_valid = train_y.석식계.iloc[train_idx], train_y.석식계.iloc[valid_idx]
             train_pool_dinner = Pool(X_train, y_train, cat_features=cat_features)
             valid_pool_dinner = Pool(X_valid, y_valid, cat_features=cat_features)
             reg_dinner_ = CatBoostRegressor(
