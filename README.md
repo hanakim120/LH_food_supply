@@ -87,9 +87,8 @@ COMPLETED: 14721 data is augmented
 ## Common
 1. **model**: model selection (catboost, ...)
 2. **text**: Method to preprocess text data (embedding / tokenize / raw)
-3. **sep_date**: When True, it does not use time column as timestamp. it separates the columns with month and week and traet as categorical features
-4. **dummy_corpus**: making dummy data using random permutation
-5. **seed**: random seed
+3. **dummy_corpus**: making dummy data using random permutation
+4. **seed**: random seed
 
 ## fasttext
 1. **fasttext_model_fn**: fasttext model file path (train new model if path invalid)
@@ -104,10 +103,9 @@ COMPLETED: 14721 data is augmented
 
 ## CatBoost
 1. **has_time**: whether randomly shuffle datas or not
-2. **epochs**: epochs
-3. **depth**: growth stop criterion
-4. **verbose**: verbosity
-5. **k**: using k-fold when k > 0
+2. **depth**: growth stop criterion
+3. **verbose**: verbosity
+4. **k**: using k-fold when k > 0
 
 ## LGBM
 1. **num_leaves**: number of leaves limitation for growth stopping
@@ -118,11 +116,10 @@ COMPLETED: 14721 data is augmented
 6. **max_cat_threshold**: maximum threshold for categorical feature treatment
 7. **lgbm_epoch**: number of iteration(=number of estimators)
 8. **lr**: earning rate
-9. **epochs**: epochs
-10. **depth**: growth stop criterion
-11. **k**: using k-fold when k > 0
-12. **verbose**: verbosity
-13. **seed**: random seed
+9. **depth**: growth stop criterion
+10. **k**: using k-fold when k > 0
+11. **verbose**: verbosity
+12. **seed**: random seed
 
 ## Experimental
 1. **sum_reduction**: sum all embedding values and divide into embedding dimension

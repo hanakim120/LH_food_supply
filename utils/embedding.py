@@ -11,6 +11,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import *
 from sklearn.feature_extraction.text import CountVectorizer
 
+from utils.dummy import main
+
 
 TRAIN_LENGTH = 1205
 
@@ -31,7 +33,7 @@ def get_fasttext_model(config, train_df, save=False):
     if config.dummy_corpus :
         args = {'load_fn' : './data/corpus.train.txt',
                 'save_fn' : './data/corpus.train.dummy.txt',
-                'iter' : 2,
+                'iter' : 10,
                 'verbose' : 300}
         args = Namespace(**args)
         main(args)
@@ -78,9 +80,9 @@ def embedding(config, train_df, valid_df, test_df):
     lunch_array = np.zeros((1255, config.dim))
     dinner_array = np.zeros((1255, config.dim))
     for i in range(1255) :
-        breakfast_array[i] = model.get_sentence_vector(breakfast[i]) / (len(breakfast[i].split()) + 1)
-        lunch_array[i] = model.get_sentence_vector(lunch[i]) / (len(lunch[i].split()) + 1)
-        dinner_array[i] = model.get_sentence_vector(dinner[i]) / (len(dinner[i].split()) + 1)
+        breakfast_array[i] = model.get_sentence_vector(breakfast[i]) / len(breakfast[i].split())
+        lunch_array[i] = model.get_sentence_vector(lunch[i]) / len(lunch[i].split())
+        dinner_array[i] = model.get_sentence_vector(dinner[i]) / len(dinner[i].split())
 
     for i in range(config.dim) :
         embedding_features.append('breakfast_{}'.format(i))

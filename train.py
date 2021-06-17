@@ -1,4 +1,6 @@
 import argparse
+import warnings
+warnings.filterwarnings(action='ignore')
 
 from module.lgbm_trainer import train_lgbm
 from module.catboost_trainer import train_catboost
@@ -25,7 +27,6 @@ def define_argparser():
                    help='Use pretrained korean language model')
     p.add_argument('--use_tok', action='store_true',
                    help='use mecab tokenizing when embedding text data (Avalibable only if mecab installed on your environment')
-
     p.add_argument('--dim', type=int, default=3,
                    help='embedding dimension (only woking when using embedding or autoencoding method')
     p.add_argument('--min_count', type=int, default=0,
@@ -89,9 +90,6 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
                                             valid_y,
                                             config)
 
-    elif config.model == 'np':
-        reg_launch, reg_dinner = train_np(config, train_df, y)
-
     return reg_launch, reg_dinner
 
 def save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn='new'):
@@ -110,7 +108,7 @@ def save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn='ne
 
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     print('=' * 10, 'SAVE COMPLETED', '=' * 10)
-    print(sample.tail())
+    print(sample.head())
 
 
 def main(config):

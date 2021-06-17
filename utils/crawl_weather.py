@@ -43,9 +43,6 @@ def main(temps, rains):
     new_temps = np.array([float(t.replace('평균기온:', '')) for t in temps if t != '평균기온:'])
     new_rains = np.array([float(r.replace('강수량:', '')) if r != '강수량:' else 0.0 for r in rains[:1987]])
 
-    from dateutil import rrule
-    from datetime import datetime
-
     a = '20160101'
     b = '20210609'
 

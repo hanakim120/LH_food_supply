@@ -33,3 +33,4 @@ data/corpus.test.txt filter=lfs diff=lfs merge=lfs -text
 data/basemodel.bin filter=lfs diff=lfs merge=lfs -text
 result/submission_catboost1.csv filter=lfs diff=lfs merge=lfs -text
 data filter=lfs diff=lfs merge=lfs -text
+data/dummymodel.bin filter=lfs diff=lfs merge=lfs -text

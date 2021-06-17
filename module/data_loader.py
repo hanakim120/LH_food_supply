@@ -135,8 +135,8 @@ def process(config):
     test_df = pd.concat([test_df.reset_index(drop=True), test_tmp.reset_index(drop=True)], axis=1)
     test_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴'], inplace=True)
 
+    print('=' * 10, 'MESSAGE: DATA LOADED SUCCESSFULLY', '=' * 10)
     print('|TRAIN| : {} |VALID| : {} |TEST| : {}'.format(train_df.shape, valid_df.shape, test_df.shape))
-    print(train_y.shape, valid_y.shape)
 
     return train_df, valid_df, test_df, train_y, valid_y, sample
 
