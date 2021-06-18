@@ -107,6 +107,21 @@ COMPLETED: 14721 data is augmented
 3. **verbose**: verbosity
 4. **k**: using k-fold when k > 0
 
+## Tabnet
+1. **n_d**: Width of the decision prediction layer. Bigger values gives more capacity to the model with the risk of overfitting. Values typically range from 8 to 64. (n_d == n_a)
+2. **n_steps**: Number of steps in the architecture (usually between 3 and 10)
+3. **gamma**: This is the coefficient for feature reusage in the masks. A value close to 1 will make mask selection least correlated between layers. Values range from 1.0 to 2.0.
+4. **lambda_sparse**: This is the extra sparsity loss coefficient as proposed in the original paper. The bigger this coefficient is, the sparser your model will be in terms of feature selection. Depending on the difficulty of your problem, reducing this value could help.
+5. **n_independent**: Number of independent Gated Linear Units layers at each step. Usual values range from 1 to 5.
+6. **n_shared**: Number of shared Gated Linear Units at each step Usual values range from 1 to 5
+7. **use_radam**: use radam as optimizer for training tabnet, oterwise use adam instead.
+8. **epochs**: epochs
+9. **batch_size**: batch size
+10. **lr_decay_start**: when to start learning rate decay
+11. **lr_step**: apply learning rate decay with every N step
+12. **lr_gamma**: learning rate reduction ratio
+13. **optim_lr**: initialize learning rate for optimizer
+
 ## LGBM
 1. **num_leaves**: number of leaves limitation for growth stopping
 2. **min_data_in_leaf**: minimum number of data in leaf when the tree growing
