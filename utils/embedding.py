@@ -80,9 +80,9 @@ def embedding(config, train_df, valid_df, test_df):
     lunch_array = np.zeros((1255, config.dim))
     dinner_array = np.zeros((1255, config.dim))
     for i in range(1255) :
-        breakfast_array[i] = model.get_sentence_vector(breakfast[i]) / len(breakfast[i].split())
-        lunch_array[i] = model.get_sentence_vector(lunch[i]) / len(lunch[i].split())
-        dinner_array[i] = model.get_sentence_vector(dinner[i]) / len(dinner[i].split())
+        breakfast_array[i] = model.get_sentence_vector(breakfast[i]) / (len(breakfast[i].split()) + 1)
+        lunch_array[i] = model.get_sentence_vector(lunch[i]) / (len(lunch[i].split()) + 1)
+        dinner_array[i] = model.get_sentence_vector(dinner[i]) / (len(dinner[i].split()) + 1)
 
     for i in range(config.dim) :
         embedding_features.append('breakfast_{}'.format(i))

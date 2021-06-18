@@ -4,6 +4,7 @@ warnings.filterwarnings(action='ignore')
 
 from module.lgbm_trainer import train_lgbm
 from module.catboost_trainer import train_catboost
+from module.tabnet_trainer import train_tabnet
 from module.data_loader import get_data
 
 def define_argparser():
@@ -50,6 +51,41 @@ def define_argparser():
     p.add_argument('--has_time', type=bool, default=True,
                    help='whether randomly shuffle datas or not')
 
+    # Tabnet
+    p.add_argument('--n_d', type=int, default=8,
+                   help='''Width of the decision prediction layer. 
+                   Bigger values gives more capacity to the model with the risk of overfitting. 
+                   Values typically range from 8 to 64.
+                   (n_d == n_a)''')
+    p.add_argument('--n_steps', type=int, default=3,
+                   help='Number of steps in the architecture (usually between 3 and 10)')
+    p.add_argument('--gamma', type=float, default=1.3,
+                   help='''This is the coefficient for feature reusage in the masks.
+                    A value close to 1 will make mask selection least correlated between layers. 
+                    Values range from 1.0 to 2.0.''')
+    p.add_argument('--lambda_sparse', type=float, default=1e-3,
+                   help='''This is the extra sparsity loss coefficient as proposed in the original paper. 
+                   The bigger this coefficient is, the sparser your model will be in terms of feature selection. 
+                   Depending on the difficulty of your problem, reducing this value could help.''')
+    p.add_argument('--n_independent', type=int, default=1,
+                   help='Number of independent Gated Linear Units layers at each step. Usual values range from 1 to 5.')
+    p.add_argument('--n_shared', type=int, default=2,
+                   help='Number of shared Gated Linear Units at each step Usual values range from 1 to 5')
+    p.add_argument('--use_radam', action='store_true',
+                   help='use radam as optimizer for training tabnet, oterwise use adam instead.')
+    p.add_argument('--epochs', type=int, default=1000,
+                   help='epochs')
+    p.add_argument('--batch_size', type=int, default=200,
+                   help='batch size')
+    p.add_argument('--lr_decay_start', type=int, default=120,
+                   help='when to start learning rate decay')
+    p.add_argument('--lr_step', type=int, default=30,
+                   help='apply learning rate decay with every N step')
+    p.add_argument('--lr_gamma', type=float, default=0.9,
+                   help='learning rate reduction ratio')
+    p.add_argument('--optim_lr', type=float, default=1e-1,
+                   help='initialize learning rate for optimizer')
+
     # lgbm
     p.add_argument('--num_leaves', type=int, default=3,
                    help='number of leaves limitation for growth stopping')
@@ -78,33 +114,43 @@ def define_argparser():
 
 def get_model(config, train_df, valid_df, train_y, valid_y):
     if config.model == 'catboost':
-        reg_launch, reg_dinner = train_catboost(train_df,
+        reg_lunch, reg_dinner = train_catboost(train_df,
                                                 valid_df,
                                                 train_y,
                                                 valid_y,
                                                 config)
     elif config.model == 'lgbm':
-        reg_launch, reg_dinner = train_lgbm(train_df,
+        reg_lunch, reg_dinner = train_lgbm(train_df,
                                             valid_df,
                                             train_y,
                                             valid_y,
                                             config)
 
-    return reg_launch, reg_dinner
+    elif config.model == 'tabnet':
+        reg_lunch, reg_dinner = train_tabnet(train_df,
+                                             valid_df,
+                                             train_y,
+                                             valid_y,
+                                             config)
+    else:
+        print('ERROR: INVALID MODEL NAME (available: catboost / lgbm / tabnet)')
+        quit()
 
-def save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn='new'):
-    if type(reg_launch) == dict:
+    return reg_lunch, reg_dinner
+
+def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new'):
+    if type(reg_lunch) == dict:
         k = config.k
         for i in range(k):
-            sample.중식계 += reg_launch[i].predict(test_df)
+            sample.중식계 += reg_lunch[i].predict(test_df)
             sample.석식계 += reg_dinner[i].predict(test_df)
 
         sample.중식계 /= k
         sample.석식계 /= k
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     else:
-        sample.중식계 = reg_launch.predict(test_df)
-        sample.석식계 = reg_dinner.predict(test_df)
+        sample.중식계 = reg_lunch.predict(test_df.values)
+        sample.석식계 = reg_dinner.predict(test_df.values)
 
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     print('=' * 10, 'SAVE COMPLETED', '=' * 10)
@@ -118,14 +164,14 @@ def main(config):
         train_df = train_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
         test_df = test_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
 
-    reg_launch, reg_dinner = get_model(config, train_df, valid_df, train_y, valid_y)
+    reg_lunch, reg_dinner = get_model(config, train_df, valid_df, train_y, valid_y)
 
-    return reg_launch, reg_dinner, train_df, valid_df, test_df, sample
+    return reg_lunch, reg_dinner, train_df, valid_df, test_df, sample
 
 if __name__ == '__main__':
     config = define_argparser()
-    reg_launch, reg_dinner, _, valid_df, test_df, sample = main(config)
-    save_submission(config, reg_launch, reg_dinner, test_df, sample, file_fn=config.model)
+    reg_lunch, reg_dinner, _, valid_df, test_df, sample = main(config)
+    save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn=config.model)
 
 
 
