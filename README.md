@@ -1,11 +1,16 @@
 # 🎊Quick start🎉
 ## Training
 ```buildoutcfg
->>python train.py --model catboost --fasttext_epoch 2000 --sep_date --dummy_corpus
+>>python train.py --model catboost --fasttext_model_fn basemodel.bin --dummy_corpus
 ```
 or
 ```buildoutcfg
->>python train.py --model lgbm --depth 3 --sep_date --dummy_corpus --k 5 --lr 0.04
+>>python train.py --model lgbm --depth 3 --dummy_corpus --k 5 --lr 0.04
+```
+or
+```buildoutcfg
+>>python train.py --model tabnet --use_radam --lr_decay_start 100
+```
 
 ```buildoutcfg
 Categorical Features : [0, 6, 7]
