@@ -19,6 +19,7 @@ def define_argparser():
                    help='making dummy data using random permutation')
     p.add_argument('--seed', type=int, default=0,
                    help='random seed')
+    p.add_argument('--holiday_length', action='store_true')
 
 
     # fasttext
@@ -72,7 +73,11 @@ def define_argparser():
     p.add_argument('--n_shared', type=int, default=2,
                    help='Number of shared Gated Linear Units at each step Usual values range from 1 to 5')
     p.add_argument('--use_radam', action='store_true',
-                   help='use radam as optimizer for training tabnet, oterwise use adam instead.')
+                   help='use radam as optimizer for training tabnet, oterwise use SGD instead.')
+    p.add_argument('--max_grad_norm', type=float, default=1e8,
+                   help='gradient clipping')
+    p.add_argument('--momentum', type=float, default=0.02,
+                   help='Momentum for batch normalization, typically ranges from 0.01 to 0.4 (default=0.02)')
     p.add_argument('--epochs', type=int, default=1000,
                    help='epochs')
     p.add_argument('--batch_size', type=int, default=200,
@@ -149,8 +154,12 @@ def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new
         sample.석식계 /= k
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     else:
-        sample.중식계 = reg_lunch.predict(test_df.values)
-        sample.석식계 = reg_dinner.predict(test_df.values)
+        if config.model == 'tabnet':
+            sample.중식계 = reg_lunch.predict(test_df.values)
+            sample.석식계 = reg_dinner.predict(test_df.values)
+        else:
+            sample.중식계 = reg_lunch.predict(test_df)
+            sample.석식계 = reg_dinner.predict(test_df)
 
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     print('=' * 10, 'SAVE COMPLETED', '=' * 10)
@@ -165,13 +174,13 @@ def main(config):
         test_df = test_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
 
     reg_lunch, reg_dinner = get_model(config, train_df, valid_df, train_y, valid_y)
+    save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn=config.model)
 
-    return reg_lunch, reg_dinner, train_df, valid_df, test_df, sample
 
 if __name__ == '__main__':
     config = define_argparser()
-    reg_lunch, reg_dinner, _, valid_df, test_df, sample = main(config)
-    save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn=config.model)
+    main(config)
+
 
 
 

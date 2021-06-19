@@ -13,7 +13,7 @@ def train_lgbm(train_df,
                valid_y,
                config):
 
-    cat_features = [0, 7, 8, 9, 13, 15] # 요일, 공휴일전후_0, 공휴일전후_1, 공휴일전후_2, month, week
+    cat_features = [0, 2, 3, 4, 13, 15] # 요일, 공휴일전후_0, 공휴일전후_1, 공휴일전후_2, month, week
 
     if config.k > 0:
         kf = KFold(n_splits=config.k, shuffle=True, random_state=42)

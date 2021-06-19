@@ -13,7 +13,12 @@ def train_catboost(train_df,
                    train_y,
                    valid_y,
                    config):
-    cat_features = [0, 7, 8, 9, 13, 15]
+    if config.holiday_length:
+        cat_features = [0, 3, 4, 13, 15]
+    else:
+        cat_features = [0, 2, 3, 12, 14]
+
+    print('Categorical Value: ', np.array(train_df.columns)[cat_features])
 
     if config.k > 0 :
         skf = KFold(n_splits=config.k, shuffle=True, random_state=config.seed)

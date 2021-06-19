@@ -8,13 +8,24 @@ from sklearn.preprocessing import LabelEncoder
 
 
 def train_tabnet(train_df, valid_df, train_y, valid_y, config):
-    cat_idxs = [0, 7, 8, 9, 13, 15]
+    cat_idxs = [0, 2, 3, 4, 13, 15]
     le = LabelEncoder()
     for i in cat_idxs:
         train_df.iloc[:, i] = le.fit_transform(train_df.iloc[:, i])
         valid_df.iloc[:, i] = le.transform(valid_df.iloc[:, i])
     train_df = train_df.values
     valid_df = valid_df.values
+
+    if config.lr_decay_start > 0:
+        optimizer = optim.SGD
+    else:
+        if config.use_radam:
+            optimizer = custom_optim.RAdam
+        else:
+            optimizer = optim.Adam
+
+    print('OPTIMIZER : {}'.format(optimizer))
+
     print('=' * 10, 'TRAIN LUNCH MODEL', '=' * 10)
     reg_lunch = TabNetRegressor(
         n_d=config.n_d, # 8 - 64
@@ -28,9 +39,11 @@ def train_tabnet(train_df, valid_df, train_y, valid_y, config):
         n_shared=config.n_shared,
         lambda_sparse=config.lambda_sparse,
         seed=0,
-        optimizer_fn=custom_optim.RAdam if config.use_radam else optim.Adam,
+        optimizer_fn=optimizer,
         optimizer_params=dict(lr=config.optim_lr),
-        scheduler_fn=optim.lr_scheduler.MultiStepLR,
+        clip_value=config.max_grad_norm,
+        momentum=config.momentum,
+        scheduler_fn=optim.lr_scheduler.MultiStepLR if config.lr_decay_start > 0 else None,
         scheduler_params=dict(
             milestones=[i for i in range(
                 max(0, config.lr_decay_start - 1),
@@ -38,9 +51,9 @@ def train_tabnet(train_df, valid_df, train_y, valid_y, config):
                 config.lr_step)],
             gamma=config.lr_gamma,
             last_epoch= -1,
-        ),
+        ) if config.lr_decay_start > 0 else None,
         device_name='cuda' if torch.cuda.is_available else 'cpu',
-        verbose=100
+        verbose=config.verbose
     )
 
     reg_lunch.fit(
@@ -52,7 +65,7 @@ def train_tabnet(train_df, valid_df, train_y, valid_y, config):
         patience=100,
         max_epochs=config.epochs,
         batch_size=config.batch_size,
-        virtual_batch_size=config.batch_size // 10,
+        virtual_batch_size=config.batch_size // 5,
     )
 
     y_pred_lunch = reg_lunch.predict(valid_df)
@@ -71,9 +84,11 @@ def train_tabnet(train_df, valid_df, train_y, valid_y, config):
         n_shared=config.n_shared,
         lambda_sparse=config.lambda_sparse,
         seed=0,
-        optimizer_fn=custom_optim.RAdam if config.use_radam else optim.Adam,
+        optimizer_fn=optimizer,
         optimizer_params=dict(lr=config.optim_lr),
-        scheduler_fn=optim.lr_scheduler.MultiStepLR,
+        clip_value=config.max_grad_norm,
+        momentum=config.momentum,
+        scheduler_fn=optim.lr_scheduler.MultiStepLR if config.lr_decay_start > 0 else None,
         scheduler_params=dict(
             milestones=[i for i in range(
                 max(0, config.lr_decay_start - 1),
@@ -81,9 +96,9 @@ def train_tabnet(train_df, valid_df, train_y, valid_y, config):
                 config.lr_step)],
             gamma=config.lr_gamma,
             last_epoch=-1,
-        ),
+        ) if config.lr_decay_start > 0 else None,
         device_name='cuda' if torch.cuda.is_available else 'cpu',
-        verbose=100
+        verbose=config.verbose
     )
 
     reg_dinner.fit(
@@ -95,7 +110,7 @@ def train_tabnet(train_df, valid_df, train_y, valid_y, config):
         patience=100,
         max_epochs=config.epochs,
         batch_size=config.batch_size,
-        virtual_batch_size=config.batch_size // 10,
+        virtual_batch_size=config.batch_size // 5,
     )
 
     y_pred_dinner = reg_dinner.predict(valid_df)
