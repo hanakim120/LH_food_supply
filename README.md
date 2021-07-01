@@ -1,7 +1,7 @@
 # 🎊Quick start🎉
 ## Training
 ```buildoutcfg
->>python train.py --model catboost --fasttext_model_fn basemodel.bin --dummy_corpus
+python train.py --model catboost --holiday_length --text embedding --fasttext_model_fn basemodel.bin --corona
 ```
 or
 ```buildoutcfg

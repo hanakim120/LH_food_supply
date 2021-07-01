@@ -14,12 +14,14 @@ def define_argparser():
                    help='model selection. result file will be saved as "submission_[model].csv"')
     # 'embedding' or 'tokenize' or 'raw'
     p.add_argument('--text', type=str, default='embedding',
-                   help='Method to preprocess text data (embedding / tokenize / autoencode) ')
+                   help='Method to preprocess text data (embedding / menu / autoencode) ')
     p.add_argument('--dummy_corpus', action='store_true',
                    help='making dummy data using random permutation')
     p.add_argument('--seed', type=int, default=0,
                    help='random seed')
     p.add_argument('--holiday_length', action='store_true')
+    p.add_argument('--corona', action='store_true')
+    p.add_argument('--submission', action='store_true')
 
 
     # fasttext
@@ -168,10 +170,6 @@ def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new
 
 def main(config):
     train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
-
-    if config.drop_text:
-        train_df = train_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
-        test_df = test_df.iloc[:, : len(train_df.columns) - 3 * config.dim]
 
     reg_lunch, reg_dinner = get_model(config, train_df, valid_df, train_y, valid_y)
     save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn=config.model)

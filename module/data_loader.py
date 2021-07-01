@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
+from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-from utils.embedding import embedding, autoencoding
+from utils.embedding import embedding, autoencoding, menu_embedding
 
 def process(config):
     train_df = pd.read_csv('./data/train.csv', encoding='utf-8')
@@ -114,15 +115,42 @@ def process(config):
     df['야근비율'] = df['본사시간외근무명령서승인건수'] / df['출근']
     df['재택비율'] = df['현본사소속재택근무자수'] / df['본사정원수']
 
-    df.drop(columns=['본사정원수', '본사휴가자수', '본사출장자수', '현본사소속재택근무자수'], inplace=True)
-
-    temp = pd.read_csv('./data/temp.csv', encoding='utf-8')
-    df = pd.merge(df, temp, on='일자')
+    df.drop(columns=['본사정원수', '본사휴가자수', '본사출장자수', '현본사소속재택근무자수', '본사시간외근무명령서승인건수'], inplace=True)
 
     df['year'] = df.일자.apply(lambda x : int(x[:4]))
     df['month'] = df.일자.apply(lambda x : int(x[-5 :-3]))
     df['day'] = df.일자.apply(lambda x : int(x[-2 :]))
     df['week'] = df.day.apply(lambda x : x // 7)
+
+    # weather =================================
+    temp = pd.read_csv('./data/temp.csv', encoding='utf-8')
+    df = pd.merge(df, temp, on='일자')
+    # weather =================================
+
+    # corona ===========================================
+    # SRC: https://kdx.kr/data/view/25918
+    if config.corona:
+        corona = pd.read_csv('./data/corona/Covid19SidoInfState.csv')
+        corona = corona.loc[corona.gubun == '경남']
+        corona.stdDay = corona.stdDay.str.replace('년 ', '-')
+        corona.stdDay = corona.stdDay.str.replace('월 ', '-')
+        corona.stdDay = corona.stdDay.str.replace('일', '')
+        corona.stdDay = corona.stdDay.str.replace('[ ][0-9]*시', '')
+        df.일자 = pd.to_datetime(df.일자)
+        corona.stdDay = pd.to_datetime(corona.stdDay)
+        corona.rename(columns={'stdDay' : '일자',
+                               'defCnt' : '확진자수',
+                               'incDec' : '전일대비증감',
+                               'deathCnt' : '사망자수'},
+                      inplace=True)
+        si = SimpleImputer(fill_value=0, strategy='constant')
+        for col in ['확진자수', '전일대비증감', '사망자수']:
+            corona[col] = si.fit_transform(corona[col].values.reshape(-1, 1))
+        df = pd.merge(df, corona[['일자', '확진자수', '전일대비증감', '사망자수']], on='일자', how='left')
+        df.drop_duplicates('일자', keep='first', inplace=True)
+        for col in ['확진자수', '전일대비증감', '사망자수']:
+            df[col] = si.fit_transform(df[col].values.reshape(-1, 1))
+    # corona ===========================================
 
     df.drop(columns=['일자'], inplace=True)
 
@@ -144,8 +172,9 @@ def process(config):
         df[col] = df[col].str.replace('[(]모둠튀김 양념장[)]', '')
         df[col] = df[col].apply(lambda x : x.strip())
 
+
     # Normalize
-    scaling_cols = ['본사시간외근무명령서승인건수', '출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', 'day']
+    scaling_cols = ['출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', 'day']
     for col in scaling_cols :
         ms = MinMaxScaler()
         ms.fit(df[col][:TRAIN_LENGTH].values.reshape(-1, 1))
@@ -155,7 +184,7 @@ def process(config):
     le.fit(df.요일.values[:TRAIN_LENGTH])
     df.요일 = le.transform(df.요일.values)
 
-    np.random.seed(0)
+    np.random.seed(config.seed)
     idx = np.random.permutation(TRAIN_LENGTH)
     train_idx = idx[:1000]
     valid_idx = idx[1000:]
@@ -170,21 +199,23 @@ def process(config):
     valid_df.drop(columns=['중식계', '석식계'], inplace=True)
     test_df.drop(columns=['중식계', '석식계'], inplace=True)
 
-    if config.text == 'embedding' :
-        train_tmp, valid_tmp, test_tmp = embedding(config, train_df, valid_df, test_df)
-    elif config.text == 'autoencoder' :
-        train_tmp, valid_tmp, test_tmp = autoencoding(config, train_df, valid_df, test_df)
-    else:
-        print('ERROR: INVALID EMBEDDING METHOD, RUNTIME TERMINATED')
-        quit()
+    if not config.drop_text:
+        if config.text == 'embedding' :
+            train_tmp, valid_tmp, test_tmp = embedding(config, train_df, valid_df, test_df)
+        elif config.text == 'autoencoder' :
+            train_tmp, valid_tmp, test_tmp = autoencoding(config, train_df, valid_df, test_df)
+        elif config.text == 'menu':
+            train_tmp, valid_tmp, test_tmp = menu_embedding(train_df, valid_df, test_df)
+        else:
+            print('ERROR: INVALID EMBEDDING METHOD, RUNTIME TERMINATED')
+            quit()
 
-    train_df = pd.concat([train_df.reset_index(drop=True), train_tmp.reset_index(drop=True)], axis=1)
+        train_df = pd.concat([train_df.reset_index(drop=True), train_tmp.reset_index(drop=True)], axis=1)
+        valid_df = pd.concat([valid_df.reset_index(drop=True), valid_tmp.reset_index(drop=True)], axis=1)
+        test_df = pd.concat([test_df.reset_index(drop=True), test_tmp.reset_index(drop=True)], axis=1)
+
     train_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴'], inplace=True)
-
-    valid_df = pd.concat([valid_df.reset_index(drop=True), valid_tmp.reset_index(drop=True)], axis=1)
     valid_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴'], inplace=True)
-
-    test_df = pd.concat([test_df.reset_index(drop=True), test_tmp.reset_index(drop=True)], axis=1)
     test_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴'], inplace=True)
 
     print('=' * 10, 'MESSAGE: DATA LOADED SUCCESSFULLY', '=' * 10)
@@ -197,3 +228,16 @@ def get_data(config) :
     train_df, valid_df, test_df, train_y, valid_y, sample = process(config)
 
     return train_df, valid_df, test_df, train_y, valid_y, sample
+
+if __name__ == '__main__':
+    config = {'text' : 'menu',
+              'holiday_length' : True,
+              'model' : 'catboost',
+              'seed' : 0,
+              'drop_text' : False}
+    train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
+    train_df.to_csv('train_df.csv', index=False)
+    valid_df.to_csv('valid_df.csv', index=False)
+    test_df.to_csv('test_df.csv', index=False)
+    train_y.to_csv('train_y.csv', index=False)
+    valid_y.to_csv('valid_y.csv', index=False)

@@ -22,11 +22,17 @@ def pretext(text) :
     text = re.sub('▁', '', text)
     return text
 
-def get_fasttext_model(config, train_df, save=False):
+def get_fasttext_model(config, train_df, valid_df, save=False):
     print('"{}" DOES NOT EXIST. START TRAINING MODEL'.format(config.fasttext_model_fn))
-    corpus = np.concatenate([train_df.조식메뉴.values,
-                             train_df.중식메뉴.values,
-                             train_df.석식메뉴.values], axis=0)
+    if config.submission:
+        df = pd.concat([train_df, valid_df], axis=0)
+        corpus = np.concatenate([df.조식메뉴.values,
+                                 df.중식메뉴.values,
+                                 df.석식메뉴.values], axis=0)
+    else:
+        corpus = np.concatenate([train_df.조식메뉴.values,
+                                 train_df.중식메뉴.values,
+                                 train_df.석식메뉴.values], axis=0)
     with open('./data/corpus.train.txt', 'w', -1, encoding='utf-8') as f :
         f.write('\n'.join(corpus))
 
@@ -64,9 +70,9 @@ def embedding(config, train_df, valid_df, test_df):
             try:
                 model = fasttext.load_model('./data/{}'.format(config.fasttext_model_fn))
             except:
-                model = get_fasttext_model(config, train_df, save=True)
+                model = get_fasttext_model(config, train_df, valid_df, save=True)
         else:
-            model = get_fasttext_model(config, train_df, save=False)
+            model = get_fasttext_model(config, train_df, valid_df, save=False)
 
 
     TRAIN_LENGTH, VALID_LENGTH = train_df.shape[0], valid_df.shape[0]
@@ -203,3 +209,11 @@ def autoencoding(config, train_df, valid_df, test_df) :
     test_df_tmp.columns = column_names
 
     return train_df_tmp, valid_df_tmp, test_df_tmp
+
+def menu_embedding(train_df, valid_df, test_df):
+    menu = pd.read_csv('./data/menu.tok.csv', encoding='utf-8')
+    train_tmp = menu[:train_df.shape[0]]
+    valid_tmp = menu[train_df.shape[0]:train_df.shape[0] + valid_df.shape[0]]
+    test_tmp = menu[train_df.shape[0] + valid_df.shape[0]:]
+
+    return train_tmp, valid_tmp, test_tmp

@@ -14,9 +14,9 @@ def train_catboost(train_df,
                    valid_y,
                    config):
     if config.holiday_length:
-        cat_features = [0, 3, 4, 13, 15]
+        cat_features = [0, 10, 12]
     else:
-        cat_features = [0, 2, 3, 12, 14]
+        cat_features = [0, 9, 11]
 
     print('Categorical Value: ', np.array(train_df.columns)[cat_features])
 
