@@ -13,11 +13,12 @@ def train_catboost(train_df,
                    train_y,
                    valid_y,
                    config):
-    if config.holiday_length:
-        cat_features = [0, 10, 12]
+    if not config.dummy_cat:
+        cat_features = [0, 1, 9, 11] if config.holiday_length else [0, 1, 8, 10]
     else:
-        cat_features = [0, 9, 11]
+        cat_features = []
 
+    print('Columns: ', np.array(train_df.columns))
     print('Categorical Value: ', np.array(train_df.columns)[cat_features])
 
     if config.k > 0 :
@@ -35,7 +36,7 @@ def train_catboost(train_df,
             print(f'===================================={fold + 1}============================================')
             train_idx, valid_idx = folds[fold]
             X_train, X_valid, y_train, y_valid = train_df.iloc[train_idx], train_df.iloc[valid_idx], \
-                                                 train_y.중식계iloc[train_idx], train_y.중식계.iloc[valid_idx]
+                                                 train_y.중식계.iloc[train_idx], train_y.중식계.iloc[valid_idx]
 
             train_pool_lunch = Pool(X_train, y_train, cat_features=cat_features)
             valid_pool_lunch = Pool(X_valid, y_valid, cat_features=cat_features)

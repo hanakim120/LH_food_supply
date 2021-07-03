@@ -11,10 +11,9 @@ def process(config):
     sample = pd.read_csv('./data/sample_submission.csv', encoding='utf-8')
 
     TRAIN_LENGTH = 1205
-
+    # 공휴일 전후
     train_df['공휴일전후'] = 0
     test_df['공휴일전후'] = 0
-
     train_df['공휴일전후'][17] = 1
     train_df['공휴일전후'][3] = 1
     train_df['공휴일전후'][62] = 1
@@ -49,10 +48,10 @@ def process(config):
     train_df['공휴일전후'][1099] = 1
     train_df['공휴일전후'][1129] = 1
     train_df['공휴일전후'][1187] = 1
-
     test_df['공휴일전후'][10] = 1
     test_df['공휴일전후'][20] = 1
 
+    # 공휴일 길이
     if config.holiday_length:
         train_df['공휴일길이'] = 0
         test_df['공휴일길이'] = 0
@@ -105,7 +104,6 @@ def process(config):
         test_df['공휴일길이'][20] = 3  # 삼일절 연휴 전
 
     df = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)
-    df = pd.get_dummies(df, columns=['공휴일전후'])
 
     y = train_df[['중식계', '석식계']]
 
@@ -171,6 +169,10 @@ def process(config):
         df[col] = df[col].str.replace('[(]만두 고추 통계란[)]', '')
         df[col] = df[col].str.replace('[(]모둠튀김 양념장[)]', '')
         df[col] = df[col].apply(lambda x : x.strip())
+        if col == '석식메뉴':
+            df[col] = df[col].str.replace('자기개발의날', '')
+            df[col] = df[col].str.replace('자기계발의날', '')
+            df[col] = df[col].str.replace('가정의날', '')
 
 
     # Normalize
@@ -183,6 +185,9 @@ def process(config):
     le = LabelEncoder()
     le.fit(df.요일.values[:TRAIN_LENGTH])
     df.요일 = le.transform(df.요일.values)
+
+    if config.dummy_cat:
+        df = pd.get_dummies(df, columns=['요일', '공휴일전후', 'week', 'month'])
 
     np.random.seed(config.seed)
     idx = np.random.permutation(TRAIN_LENGTH)
@@ -236,8 +241,8 @@ if __name__ == '__main__':
               'seed' : 0,
               'drop_text' : False}
     train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
-    train_df.to_csv('train_df.csv', index=False)
-    valid_df.to_csv('valid_df.csv', index=False)
-    test_df.to_csv('test_df.csv', index=False)
-    train_y.to_csv('train_y.csv', index=False)
-    valid_y.to_csv('valid_y.csv', index=False)
+    train_df.to_csv('train_df.csv', index=False, encoding='utf-8-sig')
+    valid_df.to_csv('valid_df.csv', index=False, encoding='utf-8-sig')
+    test_df.to_csv('test_df.csv', index=False, encoding='utf-8-sig')
+    train_y.to_csv('train_y.csv', index=False, encoding='utf-8-sig')
+    valid_y.to_csv('valid_y.csv', index=False, encoding='utf-8-sig')

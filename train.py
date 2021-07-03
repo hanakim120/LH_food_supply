@@ -22,6 +22,7 @@ def define_argparser():
     p.add_argument('--holiday_length', action='store_true')
     p.add_argument('--corona', action='store_true')
     p.add_argument('--submission', action='store_true')
+    p.add_argument('--dummy_cat', action='store_true')
 
 
     # fasttext
