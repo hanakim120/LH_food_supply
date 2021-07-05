@@ -8,7 +8,10 @@ from sklearn.preprocessing import LabelEncoder
 
 
 def train_tabnet(train_df, valid_df, train_y, valid_y, config):
-    cat_idxs = [0, 2, 3, 4, 13, 15]
+    if not config.dummy_cat :
+        cat_idxs = [0, 1, 9, 11] if config.holiday_length else [0, 1, 8, 10]
+    else :
+        cat_idxs = []
     le = LabelEncoder()
     for i in cat_idxs:
         train_df.iloc[:, i] = le.fit_transform(train_df.iloc[:, i])

@@ -12,10 +12,13 @@ def train_lgbm(train_df,
                train_y,
                valid_y,
                config):
-    if config.holiday_length :
-        cat_features = [0, 10, 12]
+    if not config.dummy_cat :
+        cat_features = [0, 1, 9, 10, 11, 16]
     else :
-        cat_features = [0, 9, 11]
+        cat_features = []
+
+    print('Columns: ', np.array(train_df.columns))
+    print('Categorical Value: ', np.array(train_df.columns)[cat_features])
 
     if config.k > 0:
         kf = KFold(n_splits=config.k, shuffle=True, random_state=42)

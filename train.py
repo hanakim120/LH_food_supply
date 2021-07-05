@@ -54,6 +54,8 @@ def define_argparser():
                    help='using k-fold when k > 0')
     p.add_argument('--has_time', type=bool, default=True,
                    help='whether randomly shuffle datas or not')
+    p.add_argument('--rsm', type=float, default=.9,
+                   help='random feature sampling ratio')
 
     # Tabnet
     p.add_argument('--n_d', type=int, default=8,
@@ -147,22 +149,24 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
     return reg_lunch, reg_dinner
 
 def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new'):
+    test_lunch = test_df.drop(columns=['월저녁평균','요일저녁평균'])
+    test_dinner = test_df.drop(columns=['월점심평균','요일점심평균'])
     if type(reg_lunch) == dict:
         k = config.k
         for i in range(k):
-            sample.중식계 += reg_lunch[i].predict(test_df)
-            sample.석식계 += reg_dinner[i].predict(test_df)
+            sample.중식계 += reg_lunch[i].predict(test_lunch)
+            sample.석식계 += reg_dinner[i].predict(test_dinner)
 
         sample.중식계 /= k
         sample.석식계 /= k
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     else:
         if config.model == 'tabnet':
-            sample.중식계 = reg_lunch.predict(test_df.values)
-            sample.석식계 = reg_dinner.predict(test_df.values)
+            sample.중식계 = reg_lunch.predict(test_lunch.values)
+            sample.석식계 = reg_dinner.predict(test_dinner.values)
         else:
-            sample.중식계 = reg_lunch.predict(test_df)
-            sample.석식계 = reg_dinner.predict(test_df)
+            sample.중식계 = reg_lunch.predict(test_lunch)
+            sample.석식계 = reg_dinner.predict(test_dinner)
 
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
     print('=' * 10, 'SAVE COMPLETED', '=' * 10)

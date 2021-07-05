@@ -3,109 +3,18 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
+from utils.functions import get_month_average, process_holiday
 from utils.embedding import embedding, autoencoding, menu_embedding
 
 def process(config):
     train_df = pd.read_csv('./data/train.csv', encoding='utf-8')
+    y = train_df[['중식계', '석식계']]
     test_df = pd.read_csv('./data/test.csv', encoding='utf-8')
     sample = pd.read_csv('./data/sample_submission.csv', encoding='utf-8')
-
     TRAIN_LENGTH = 1205
-    # 공휴일 전후
-    train_df['공휴일전후'] = 0
-    test_df['공휴일전후'] = 0
-    train_df['공휴일전후'][17] = 1
-    train_df['공휴일전후'][3] = 1
-    train_df['공휴일전후'][62] = 1
-    train_df['공휴일전후'][131] = 1
-    train_df['공휴일전후'][152] = 1
-    train_df['공휴일전후'][226] = 1
-    train_df['공휴일전후'][221] = 1
-    train_df['공휴일전후'][224] = 1
-    train_df['공휴일전후'][245] = 1
-    train_df['공휴일전후'][310] = 1 # 2
-    train_df['공휴일전후'][311] = 1
-    train_df['공휴일전후'][309] = 1
-    train_df['공휴일전후'][330] = 1
-    train_df['공휴일전후'][379] = 1
-    train_df['공휴일전후'][467] = 1
-    train_df['공휴일전후'][470] = 1
-    train_df['공휴일전후'][502] = 1
-    train_df['공휴일전후'][565] = 1
-    train_df['공휴일전후'][623] = 1
-    train_df['공휴일전후'][651] = 1
-    train_df['공휴일전후'][705] = 1
-    train_df['공휴일전후'][709] = 1
-    train_df['공휴일전후'][815] = 1
-    train_df['공휴일전후'][864] = 1
-    train_df['공휴일전후'][950] = 1
-    train_df['공휴일전후'][951] = 1
-    train_df['공휴일전후'][953] = 1
-    train_df['공휴일전후'][954] = 1
-    train_df['공휴일전후'][955] = 1
-    train_df['공휴일전후'][971] = 1 #2
-    train_df['공휴일전후'][1038] = 1
-    train_df['공휴일전후'][1099] = 1
-    train_df['공휴일전후'][1129] = 1
-    train_df['공휴일전후'][1187] = 1
-    test_df['공휴일전후'][10] = 1
-    test_df['공휴일전후'][20] = 1
 
-    # 공휴일 길이
-    if config.holiday_length:
-        train_df['공휴일길이'] = 0
-        test_df['공휴일길이'] = 0
-        train_df['공휴일길이'][17] = 1  # 삼일절 전
-        train_df['공휴일길이'][6] = 2  # 설 연휴 전
-        train_df['공휴일길이'][47] = 1  # 총선 전
-        train_df['공휴일길이'][62] = 4  # 어린이 날 전
-        train_df['공휴일길이'][82] = 4  # 현충일 연휴 전(금요일)
-        train_df['공휴일길이'][131] = 3  # 광복절 연휴 전(금요일)
-        train_df['공휴일길이'][152] = 5  # 한가위 연휴 전
-        train_df['공휴일길이'][162] = 3  # 개천절 연휴 전(금요일)
-        train_df['공휴일길이'][226] = 2  # 연말
-        train_df['공휴일길이'][221] = 2  # 크리스마스 전(금요일)
-        train_df['공휴일길이'][245] = 4  # 설 연휴 전
-        train_df['공휴일길이'][310] = 3  # 어린이 날 연휴 전(금요일)
-        train_df['공휴일길이'][309] = 1  # 석가탄신일 전
-        train_df['공휴일길이'][330] = 1  # 현충일 전
-        train_df['공휴일길이'][379] = 1  # 광복절 전
-        train_df['공휴일길이'][412] = 11  # 추석연휴 전
-        train_df['공휴일길이'][466] = 3  # 성탄절 연휴 전(금요일)
-        train_df['공휴일길이'][470] = 3  # 연말
-        train_df['공휴일길이'][502] = 4  # 설 연휴 전
-        train_df['공휴일길이'][510] = 3  # 삼일절 전
-        train_df['공휴일길이'][565] = 1  # 석가탄신일 전
-        train_df['공휴일길이'][575] = 1  # 현충일 전
-        train_df['공휴일길이'][623] = 1  # 광복절 전
-        train_df['공휴일길이'][650] = 2  # 추석 연휴 전
-        train_df['공휴일길이'][651] = 16  # 한글날 전
-        train_df['공휴일길이'][705] = 1  # 크리스마스 이브
-        train_df['공휴일길이'][709] = 1  # 연말
-        train_df['공휴일길이'][732] = 5  # 설연휴 전
-        train_df['공휴일길이'][748] = 3  # 삼일절 연휴 전
-        train_df['공휴일길이'][792] = 3  # 어린이날 연휴 전
-        train_df['공휴일길이'][814] = 1  # 현충일 전
-        train_df['공휴일길이'][863] = 1  # 광복절 전
-        train_df['공휴일길이'][882] = 4  # 추석 연휴 전
-        train_df['공휴일길이'][894] = 1  # 개천절 전
-        train_df['공휴일길이'][897] = 1  # 한글날 전
-        train_df['공휴일길이'][951] = 1  # 크리스마스 전
-        train_df['공휴일길이'][955] = 1  # 연말
-        train_df['공휴일길이'][971] = 4  # 설 연휴
-        train_df['공휴일길이'][1027] = 1  # 국회의원선거 전
-        train_df['공휴일길이'][1037] = 4  # 석가탄신일 연휴 전
-        train_df['공휴일길이'][1038] = 1  # 어린이날 전
-        train_df['공휴일길이'][1129] = 7  # 추석연휴 전
-        train_df['공휴일길이'][1133] = 3  # 한글날 연휴 전
-        train_df['공휴일길이'][1187] = 10  # 성탄절 연휴 전
-
-        test_df['공휴일길이'][10] = 4  # 설연휴전
-        test_df['공휴일길이'][20] = 3  # 삼일절 연휴 전
-
+    train_df, test_df = process_holiday(train_df, test_df)
     df = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)
-
-    y = train_df[['중식계', '석식계']]
 
     df['출근'] = df['본사정원수'] - (df['본사휴가자수'] + df['본사출장자수'] + df['현본사소속재택근무자수'])
     df['휴가비율'] = df['본사휴가자수'] / df['본사정원수']
@@ -121,9 +30,58 @@ def process(config):
     df['week'] = df.day.apply(lambda x : x // 7)
 
     # weather =================================
-    temp = pd.read_csv('./data/temp.csv', encoding='utf-8')
-    df = pd.merge(df, temp, on='일자')
+    # SRC: https://www.weatheri.co.kr/index.php
+    weather_columns = ['일자', '평균기온', '강수량', '적설량', '습도', '풍속']
+    weather = pd.read_csv('./data/temp.csv', encoding='utf-8')[weather_columns]
+    df = pd.merge(df, weather, on='일자')
+
+    df['불쾌지수'] = 0
+    df['체감온도'] = 0
+    df['폭염'] = 0
+    df['눈'] = 0
+    df.reset_index(drop=True, inplace=True)
+    for i in range(df.shape[0]):
+        df.loc[i, '불쾌지수'] = (9. * df.loc[i, '평균기온'] / 5.) - (0.55 * (1 - df.loc[i, '습도']) * ((9. * df.loc[i, '평균기온'] / 5.) - 26)) + 32
+        df.loc[i, '체감온도'] = 13.12 + (0.6215 * df.loc[i, '평균기온']) - (11.37 * (df.loc[i, '풍속'] ** 0.16)) + (0.3965 * (df.loc[i, '풍속'] ** 0.16) * df.loc[i, '평균기온'])
+        if df.loc[i, '적설량'] > 0:
+            df['눈'] = 1
+    df.drop(columns=['평균기온', '습도', '풍속', '적설량'], inplace=True)
     # weather =================================
+
+    df['요일점심평균'] = 0
+    for i in range(df.shape[0]):
+        if df.loc[i, '요일'] == '월' :
+            df.loc[i, '요일점심평균'] = 1144.331950207469
+        if df.loc[i, '요일'] == '화' :
+            df.loc[i, '요일점심평균'] = 925.6208333333333
+        if df.loc[i, '요일'] == '수' :
+            df.loc[i, '요일점심평균'] = 905.2133891213389
+        if df.loc[i, '요일'] == '목' :
+            df.loc[i, '요일점심평균'] = 823.9918032786885
+        if df.loc[i, '요일'] == '금' :
+            df.loc[i, '요일점심평균'] = 653.6099585062241
+
+    df['요일저녁평균'] = 0
+    for i in range(df.shape[0]):
+        if df.loc[i, '요일'] == '월' :
+            df.loc[i, '요일저녁평균'] = 271.8409376560321
+        if df.loc[i, '요일'] == '화' :
+            df.loc[i, '요일저녁평균'] = 261.99296006944445
+        if df.loc[i, '요일'] == '수' :
+            df.loc[i, '요일저녁평균'] = 183.70128324083964
+        if df.loc[i, '요일'] == '목' :
+            df.loc[i, '요일저녁평균'] = 241.889327465735
+        if df.loc[i, '요일'] == '금' :
+            df.loc[i, '요일저녁평균'] = 203.84566381432825
+
+    averages = get_month_average(df[:TRAIN_LENGTH])
+
+    df['월점심평균'] = 0
+    for i in range(df.shape[0]):
+        df.loc[i, '월점심평균'] = averages[0][df.loc[i, 'month'] - 1]
+    df['월저녁평균'] = 0
+    for i in range(df.shape[0]) :
+        df.loc[i, '월저녁평균'] = averages[1][df.loc[i, 'month'] - 1]
 
     # corona ===========================================
     # SRC: https://kdx.kr/data/view/25918
@@ -174,9 +132,10 @@ def process(config):
             df[col] = df[col].str.replace('자기계발의날', '')
             df[col] = df[col].str.replace('가정의날', '')
 
+    df.to_csv('data.csv', index=False, encoding='utf-8-sig')
 
     # Normalize
-    scaling_cols = ['출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', 'day']
+    scaling_cols = ['출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year']
     for col in scaling_cols :
         ms = MinMaxScaler()
         ms.fit(df[col][:TRAIN_LENGTH].values.reshape(-1, 1))
@@ -223,8 +182,12 @@ def process(config):
     valid_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴'], inplace=True)
     test_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴'], inplace=True)
 
+    # train_df = train_df.reset_index(drop=True).drop(index=[870])
+    # train_y = train_y.reset_index(drop=True).drop(index=[870])
+
     print('=' * 10, 'MESSAGE: DATA LOADED SUCCESSFULLY', '=' * 10)
     print('|TRAIN| : {} |VALID| : {} |TEST| : {}'.format(train_df.shape, valid_df.shape, test_df.shape))
+    print('Missing values: {}'.format(np.isnan(train_df).sum().sum()))
 
     return train_df, valid_df, test_df, train_y, valid_y, sample
 

@@ -14,7 +14,7 @@ def train_catboost(train_df,
                    valid_y,
                    config):
     if not config.dummy_cat:
-        cat_features = [0, 1, 9, 11] if config.holiday_length else [0, 1, 8, 10]
+        cat_features = [0, 1, 9, 10, 11, 16]
     else:
         cat_features = []
 
@@ -35,7 +35,8 @@ def train_catboost(train_df,
         for fold in range(config.k) :
             print(f'===================================={fold + 1}============================================')
             train_idx, valid_idx = folds[fold]
-            X_train, X_valid, y_train, y_valid = train_df.iloc[train_idx], train_df.iloc[valid_idx], \
+            X_train, X_valid, y_train, y_valid = train_df.drop(columns=['월저녁평균', '요일저녁평균']).iloc[train_idx], \
+                                                 train_df.drop(columns=['월저녁평균', '요일저녁평균']).iloc[valid_idx], \
                                                  train_y.중식계.iloc[train_idx], train_y.중식계.iloc[valid_idx]
 
             train_pool_lunch = Pool(X_train, y_train, cat_features=cat_features)
@@ -46,7 +47,7 @@ def train_catboost(train_df,
                 eval_metric='MAE',
                 iterations=3000,
                 depth=config.depth,
-                rsm=0.9,
+                rsm=config.rsm,
                 boost_from_average=True,
                 reg_lambda=20.0,
                 random_seed=0)
@@ -61,7 +62,9 @@ def train_catboost(train_df,
             mae_lunch = mean_absolute_error(y_pred_lunch, valid_y.중식계)
             scores_lunch.append(mae_lunch)
 
-            y_train, y_valid = train_y.석식계.iloc[train_idx], train_y.석식계.iloc[valid_idx]
+            X_train, X_valid, y_train, y_valid = train_df.drop(columns=['월점심평균', '요일점심평균']).iloc[train_idx], \
+                                                 train_df.drop(columns=['월점심평균', '요일점심평균']).iloc[valid_idx], \
+                                                 train_y.석식계.iloc[train_idx], train_y.석식계.iloc[valid_idx]
             train_pool_dinner = Pool(X_train, y_train, cat_features=cat_features)
             valid_pool_dinner = Pool(X_valid, y_valid, cat_features=cat_features)
             reg_dinner_ = CatBoostRegressor(
@@ -96,8 +99,8 @@ def train_catboost(train_df,
 
     else :
         print('=' * 10, 'TRAIN lunch MODEL', '=' * 10)
-        train_pool_lunch = Pool(train_df, train_y.중식계, cat_features=cat_features)
-        valid_pool_lunch = Pool(valid_df, valid_y.중식계, cat_features=cat_features)
+        train_pool_lunch = Pool(train_df.drop(columns=['월저녁평균','요일저녁평균']), train_y.중식계, cat_features=cat_features)
+        valid_pool_lunch = Pool(valid_df.drop(columns=['월저녁평균','요일저녁평균']), valid_y.중식계, cat_features=cat_features)
 
         reg_lunch = CatBoostRegressor(loss_function='MAE',
                                        has_time=True,
@@ -121,8 +124,8 @@ def train_catboost(train_df,
 
         # ===========================================================================================
         print('=' * 10, 'TRAIN DINNER MODEL', '=' * 10)
-        train_pool_lunch = Pool(train_df, train_y.석식계, cat_features=cat_features)
-        valid_pool_lunch = Pool(valid_df, valid_y.석식계, cat_features=cat_features)
+        train_pool_lunch = Pool(train_df.drop(columns=['월점심평균','요일점심평균']), train_y.석식계, cat_features=cat_features)
+        valid_pool_lunch = Pool(valid_df.drop(columns=['월점심평균','요일점심평균']), valid_y.석식계, cat_features=cat_features)
 
         reg_dinner = CatBoostRegressor(loss_function='MAE',
                                        has_time=True,
