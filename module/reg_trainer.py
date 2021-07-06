@@ -19,7 +19,9 @@ def train_reg_model(train_df,
     scores = []
     reg_lunchs = []
     reg_dinners = []
-    model_list = [('l1', Lasso), ('l2', Ridge)]
+    model_list = [('l1', Lasso),
+                  ('l2', Ridge)]
+
     for name, model in model_list:
         print('=' * 10, 'TRAIN LUNCH {}'.format(name), '=' * 10)
 

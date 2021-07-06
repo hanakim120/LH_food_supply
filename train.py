@@ -8,6 +8,7 @@ from module.tabnet_trainer import train_tabnet
 from module.data_loader import get_data
 from module.rf_trainer import train_randomforest
 from module.reg_trainer import train_reg_model
+from module.lr_trainer import train_lr
 
 def define_argparser():
     p = argparse.ArgumentParser()
@@ -162,6 +163,12 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
                                                 train_y,
                                                 valid_y,
                                                 config)
+    elif config.model == 'lr':
+        reg_lunch, reg_dinner = train_lr(train_df,
+                                         valid_df,
+                                         train_y,
+                                         valid_y,
+                                         config)
     else:
         print('ERROR: INVALID MODEL NAME (available: catboost / lgbm / tabnet)')
         quit()
