@@ -6,6 +6,8 @@ from module.lgbm_trainer import train_lgbm
 from module.catboost_trainer import train_catboost
 from module.tabnet_trainer import train_tabnet
 from module.data_loader import get_data
+from module.rf_trainer import train_randomforest
+from module.reg_trainer import train_reg_model
 
 def define_argparser():
     p = argparse.ArgumentParser()
@@ -19,14 +21,12 @@ def define_argparser():
                    help='making dummy data using random permutation')
     p.add_argument('--seed', type=int, default=0,
                    help='random seed')
-    p.add_argument('--holiday_length', action='store_true')
-    p.add_argument('--corona', action='store_true')
     p.add_argument('--submission', action='store_true')
     p.add_argument('--dummy_cat', action='store_true')
 
 
     # fasttext
-    p.add_argument('--fasttext_model_fn', type=str,
+    p.add_argument('--fasttext_model_fn', type=str, default='basemodel.bin',
                    help='fasttext model file path (train new model if path invalid)')
     p.add_argument('--pretrained', action='store_true',
                    help='Use pretrained korean language model')
@@ -112,6 +112,14 @@ def define_argparser():
     p.add_argument('--lr', type=float, default=0.04,
                    help='learning rate')
 
+    # rf
+    p.add_argument('--n_est', type=int, default=200,
+                   help='number_of_estimators')
+    p.add_argument('--min_samp', type=int, default=1,
+                   help='minimum number of sample to split node')
+
+    # regularization model
+    p.add_argument('--alpha', type=float, default=1.)
 
     # experimental
     p.add_argument('--sum_reduction', action='store_true',
@@ -142,6 +150,18 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
                                              train_y,
                                              valid_y,
                                              config)
+    elif config.model == 'rf' or config.model == 'randomforest':
+        reg_lunch, reg_dinner = train_randomforest(train_df,
+                                                   valid_df,
+                                                   train_y,
+                                                   valid_y,
+                                                   config)
+    elif config.model == 'reg':
+        reg_lunch, reg_dinner = train_reg_model(train_df,
+                                                valid_df,
+                                                train_y,
+                                                valid_y,
+                                                config)
     else:
         print('ERROR: INVALID MODEL NAME (available: catboost / lgbm / tabnet)')
         quit()

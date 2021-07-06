@@ -14,7 +14,7 @@ def train_catboost(train_df,
                    valid_y,
                    config):
     if not config.dummy_cat:
-        cat_features = [0, 1, 9, 10, 11, 16]
+        cat_features = [0, 1, 9, 11, 16] # 요일, 공휴일전후, month, week, 체감온도, 폭염
     else:
         cat_features = []
 
@@ -73,7 +73,7 @@ def train_catboost(train_df,
                 eval_metric='MAE',
                 iterations=3000,
                 depth=config.depth,
-                rsm=0.9,
+                rsm=config.rsm,
                 boost_from_average=True,
                 reg_lambda=20.0,
                 random_seed=0)
@@ -107,7 +107,7 @@ def train_catboost(train_df,
                                        eval_metric='MAE',
                                        iterations=3000,
                                        depth=config.depth,
-                                       rsm=0.9,
+                                       rsm=config.rsm,
                                        boost_from_average=True,
                                        reg_lambda=20.0,
                                        random_seed=0
@@ -132,7 +132,7 @@ def train_catboost(train_df,
                                        eval_metric='MAE',
                                        iterations=3000,
                                        depth=config.depth,
-                                       rsm=0.9,
+                                       rsm=config.rsm,
                                        boost_from_average=True,
                                        reg_lambda=20.0,
                                        random_seed=0
