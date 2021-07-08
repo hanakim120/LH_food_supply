@@ -4,7 +4,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 from utils.functions import get_month_average, process_holiday
-from utils.embedding import embedding, autoencoding, menu_embedding
+from utils.embedding import embedding
 
 
 def get_ratio(df):
@@ -51,7 +51,7 @@ def process_text(df):
 
     return df
 
-def process(config):
+def get_data(config):
     train_df = pd.read_csv('./data/train.csv', encoding='utf-8')
     y = train_df[['중식계', '석식계']]
     test_df = pd.read_csv('./data/test.csv', encoding='utf-8')
@@ -144,11 +144,7 @@ def process(config):
     df = process_text(df)
 
     # Normalize
-    scaling_cols = ['공휴일길이',
-                    '출근', '휴가비율', '야근비율', '재택비율', '출장비율',
-                    'year',
-                    '강수량', '불쾌지수', '체감온도',
-                    '요일점심평균', '요일저녁평균', '월점심평균', '월저녁평균'] + corona_columns
+    scaling_cols = ['공휴일길이', '출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', '강수량', '불쾌지수', '체감온도', '요일점심평균', '요일저녁평균', '월점심평균', '월저녁평균'] + corona_columns
     for col in scaling_cols :
         ms = MinMaxScaler()
         ms.fit(df[col][:TRAIN_LENGTH].values.reshape(-1, 1))
@@ -176,20 +172,11 @@ def process(config):
     valid_df.drop(columns=['중식계', '석식계'], inplace=True)
     test_df.drop(columns=['중식계', '석식계'], inplace=True)
 
-    if not config.drop_text:
-        if config.text == 'embedding' :
-            train_tmp, valid_tmp, test_tmp = embedding(config, train_df, valid_df, test_df)
-        elif config.text == 'autoencoder' :
-            train_tmp, valid_tmp, test_tmp = autoencoding(config, train_df, valid_df, test_df)
-        elif config.text == 'menu':
-            train_tmp, valid_tmp, test_tmp = menu_embedding(train_df, valid_df, test_df)
-        else:
-            print('ERROR: INVALID EMBEDDING METHOD, RUNTIME TERMINATED')
-            quit()
+    train_tmp, valid_tmp, test_tmp = embedding(config, train_df, valid_df, test_df)
 
-        train_df = pd.concat([train_df.reset_index(drop=True), train_tmp.reset_index(drop=True)], axis=1)
-        valid_df = pd.concat([valid_df.reset_index(drop=True), valid_tmp.reset_index(drop=True)], axis=1)
-        test_df = pd.concat([test_df.reset_index(drop=True), test_tmp.reset_index(drop=True)], axis=1)
+    train_df = pd.concat([train_df.reset_index(drop=True), train_tmp.reset_index(drop=True)], axis=1)
+    valid_df = pd.concat([valid_df.reset_index(drop=True), valid_tmp.reset_index(drop=True)], axis=1)
+    test_df = pd.concat([test_df.reset_index(drop=True), test_tmp.reset_index(drop=True)], axis=1)
 
     train_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴', '일자'], inplace=True)
     valid_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴', '일자'], inplace=True)
@@ -201,12 +188,7 @@ def process(config):
     print('=' * 10, 'MESSAGE: DATA LOADED SUCCESSFULLY', '=' * 10)
     print('|TRAIN| : {} |VALID| : {} |TEST| : {}'.format(train_df.shape, valid_df.shape, test_df.shape))
     print('Missing values: {}'.format(np.isnan(train_df).sum().sum()))
-
-    return train_df, valid_df, test_df, train_y, valid_y, sample
-
-
-def get_data(config) :
-    train_df, valid_df, test_df, train_y, valid_y, sample = process(config)
+    print()
 
     return train_df, valid_df, test_df, train_y, valid_y, sample
 

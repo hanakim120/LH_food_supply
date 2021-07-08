@@ -1,58 +1,40 @@
 # 🎊Quick start🎉
 ## Training
 ```buildoutcfg
-python train.py --model catboost --holiday_length --text embedding --fasttext_model_fn basemodel.bin --corona
-```
-or
-```buildoutcfg
->>python train.py --model lgbm --depth 3 --dummy_corpus --k 5 --lr 0.04
-```
-or
-```buildoutcfg
->>python train.py --model tabnet --use_radam --lr_decay_start 100
+python train.py --model lr --text menu
 ```
 
 ```buildoutcfg
-Categorical Features : [0, 6, 7]
-========== TRAIN LAUNCH MODEL ==========
-0:      learn: 167.0310572      test: 153.5968870       best: 153.5968870 (0)   total: 143ms    remaining: 7m 9s
-100:    learn: 80.7203422       test: 76.3503910        best: 76.3503910 (100)  total: 830ms    remaining: 23.8s
-200:    learn: 70.6280619       test: 69.6358031        best: 69.6358031 (200)  total: 1.51s    remaining: 21s
-300:    learn: 65.1974062       test: 67.5897186        best: 67.5897186 (300)  total: 2.3s     remaining: 20.6s
-400:    learn: 61.7769994       test: 66.9983577        best: 66.9983577 (400)  total: 3.06s    remaining: 19.8s
-500:    learn: 59.2809029       test: 66.7950628        best: 66.7295371 (474)  total: 3.79s    remaining: 18.9s
-Stopped by overfitting detector  (100 iterations wait)
+========== PCA RESULT ==========
+breakfast explained variance [0.25148388 0.37367311 0.46665427]
+lunch explained variance [0.2620023  0.36952975 0.46542106]
+dinner explained variance [0.26094099 0.39950021 0.48948373]
 
-bestTest = 66.72953711
-bestIteration = 474
+========== MESSAGE: DATA LOADED SUCCESSFULLY ==========
+|TRAIN| : (1000, 29) |VALID| : (205, 29) |TEST| : (50, 29)
+Missing values: 0
 
-Shrink model to first 475 iterations.
+Columns:  ['요일' '공휴일전후' '공휴일길이' '출근' '휴가비율' '출장비율' '야근비율' '재택비율' 'year' 'month'
+ 'day' 'week' '강수량' '불쾌지수' '체감온도' '요일점심평균' '요일저녁평균' '월점심평균' '월저녁평균'
+ '전일대비증감' 0 1 2 3 4 5 6 7 8]
+========== TRAIN LUNCH MODEL ==========
+(Lunch) train score :  68.1250047243973
+        valid score:  76.92316808031497
+
 ========== TRAIN DINNER MODEL ==========
-0:      learn: 99.1778206       test: 90.2731526        best: 90.2731526 (0)    total: 7.44ms   remaining: 22.3s
-100:    learn: 65.6623150       test: 57.0599211        best: 57.0599211 (100)  total: 822ms    remaining: 23.6s
-200:    learn: 53.6771937       test: 47.3983845        best: 47.3983845 (200)  total: 1.6s     remaining: 22.3s
-300:    learn: 48.6255771       test: 44.8366343        best: 44.8366343 (300)  total: 2.29s    remaining: 20.6s
-400:    learn: 45.9185217       test: 44.4320334        best: 44.4271799 (392)  total: 3.04s    remaining: 19.7s
-500:    learn: 43.8352190       test: 44.1411717        best: 44.1370020 (499)  total: 3.75s    remaining: 18.7s
-600:    learn: 42.0927856       test: 44.0551806        best: 43.9661026 (572)  total: 4.51s    remaining: 18s
-Stopped by overfitting detector  (100 iterations wait)
+(Dinner) train score :  63.01406437427006
+         valid score:  57.88981133475012
 
-bestTest = 43.96610264
-bestIteration = 572
-
-Shrink model to first 573 iterations.
 ========== RESULT ==========
-MAE_LAUNCH : 66.7295381089314
-MAE_DINNER : 43.966103641137856
-TOTAL SCORE : 55.34782087503463
+TOTAL SCORE : 67.40648970753254
 
 ========== SAVE COMPLETED ==========
-           일자       중식계      석식계
-45  2021-04-05  1209.855948  554.705740
-46  2021-04-06  1033.257364  543.827706
-47  2021-04-07   941.435875  372.935169
-48  2021-04-08   862.466410  420.880682
-49  2021-04-09   632.735706  326.675741
+           일자          중식계         석식계
+0  2021-01-27  1026.794636  342.914369
+1  2021-01-28   980.453254  464.353275
+2  2021-01-29   673.898736  230.204398
+3  2021-02-01  1249.020407  520.190438
+4  2021-02-02  1073.293711  535.185174
 
 ```
 
@@ -90,27 +72,33 @@ COMPLETED: 14721 data is augmented
 
 # 📐Parameter tuning📚
 ## Common
-1. **model**: model selection (catboost, ...)
-2. **text**: Method to preprocess text data (embedding / tokenize / raw)
-3. **dummy_corpus**: making dummy data using random permutation
-4. **seed**: random seed
+1. **model**: model selection. result file will be saved as "./data/submission_[model].csv"
+              (catboost / lgbm / lr / rf / reg / tabnet)
+2. **text**: Method to preprocess text data 
+             (embedding / menu / autoencode)
+3. **dim**: embedding dimension
+4. **dummy_corpus**: making dummy data using random permutation
+5. **seed**: random seed
+6. **k**: using k-fold when k > 0
+7. **verbose**: verbosity during training
+8. **epochs**: epochs
+
 
 ## fasttext
 1. **fasttext_model_fn**: fasttext model file path (train new model if path invalid)
 2. **pretrained**: Use pretrained korean language model (supported by fasttext)
 3. **use_tok**: use mecab tokenizing when embedding text data (Avalibable only if mecab installed on your environment)
-4. **dim**: embedding dimension (only woking when using embedding method)
-5. **min_count**
-6. **window_size**
-7. **min_ngram**
-8. **max_ngram**
-9. **fasttext_epoch**: number of training epochs
+4. **min_count**
+5. **window_size**
+6. **min_ngram**
+7. **max_ngram**
+8. **fasttext_epoch**: number of training epochs
+9. **dummy_corpus**: using dummy data
 
 ## CatBoost
 1. **has_time**: whether randomly shuffle datas or not
 2. **depth**: growth stop criterion
-3. **verbose**: verbosity
-4. **k**: using k-fold when k > 0
+3. **rsm**: random subsampling ratio
 
 ## Tabnet
 1. **n_d**: Width of the decision prediction layer. Bigger values gives more capacity to the model with the risk of overfitting. Values typically range from 8 to 64. (n_d == n_a)
@@ -137,9 +125,6 @@ COMPLETED: 14721 data is augmented
 7. **lgbm_epoch**: number of iteration(=number of estimators)
 8. **lr**: earning rate
 9. **depth**: growth stop criterion
-10. **k**: using k-fold when k > 0
-11. **verbose**: verbosity
-12. **seed**: random seed
 
 ## Experimental
 1. **sum_reduction**: sum all embedding values and divide into embedding dimension

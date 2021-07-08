@@ -2,28 +2,36 @@ import argparse
 import warnings
 warnings.filterwarnings(action='ignore')
 
-from module.lgbm_trainer import train_lgbm
-from module.catboost_trainer import train_catboost
-from module.tabnet_trainer import train_tabnet
 from module.data_loader import get_data
-from module.rf_trainer import train_randomforest
-from module.reg_trainer import train_reg_model
-from module.lr_trainer import train_lr
+
+from module.model.lgbm import train_lgbm
+from module.model.catboost import train_catboost
+from module.model.tabnet import train_tabnet
+from module.model.randomforest import train_randomforest
+from module.model.regularized_regression import train_reg_model
+from module.model.linear_regression import train_lr
 
 def define_argparser():
     p = argparse.ArgumentParser()
 
     p.add_argument('--model', type=str, required=True,
-                   help='model selection. result file will be saved as "submission_[model].csv"')
-    # 'embedding' or 'tokenize' or 'raw'
+                   help='''model selection. result file will be saved as "./data/submission_[model].csv"
+                   (catboost / lgbm / lr / rf / reg / tabnet)''')
+
     p.add_argument('--text', type=str, default='embedding',
-                   help='Method to preprocess text data (embedding / menu / autoencode) ')
-    p.add_argument('--dummy_corpus', action='store_true',
-                   help='making dummy data using random permutation')
+                   help='Method to preprocess text data (embedding / menu / autoencode)')
+    p.add_argument('--dim', type=int, default=3,
+                   help='embedding dimension')
     p.add_argument('--seed', type=int, default=0,
                    help='random seed')
-    p.add_argument('--submission', action='store_true')
-    p.add_argument('--dummy_cat', action='store_true')
+    p.add_argument('--dummy_cat', action='store_true',
+                   help='transform categorical feateatures into dummy variables')
+    p.add_argument('--k', type=int, default=0,
+                   help='using k-fold when k > 0')
+    p.add_argument('--verbose', type=int, default=100,
+                   help='verbosity')
+    p.add_argument('--epochs', type=int, default=1000,
+                   help='epochs')
 
 
     # fasttext
@@ -33,8 +41,6 @@ def define_argparser():
                    help='Use pretrained korean language model')
     p.add_argument('--use_tok', action='store_true',
                    help='use mecab tokenizing when embedding text data (Avalibable only if mecab installed on your environment')
-    p.add_argument('--dim', type=int, default=3,
-                   help='embedding dimension (only woking when using embedding or autoencoding method')
     p.add_argument('--min_count', type=int, default=0,
                    help='argument for fasttext')
     p.add_argument('--window_size', type=int, default=3,
@@ -45,14 +51,12 @@ def define_argparser():
                    help='argument for fasttext')
     p.add_argument('--fasttext_epoch', type=int, default=1000,
                    help='number of training epochs')
+    p.add_argument('--dummy_corpus', action='store_true',
+                   help='making dummy data using random permutation')
 
     # catboost
     p.add_argument('--depth', type=int, default=3,
                    help='growth stop criterion')
-    p.add_argument('--verbose', type=int, default=100,
-                   help='verbosity')
-    p.add_argument('--k', type=int, default=0,
-                   help='using k-fold when k > 0')
     p.add_argument('--has_time', type=bool, default=True,
                    help='whether randomly shuffle datas or not')
     p.add_argument('--rsm', type=float, default=.9,
@@ -84,8 +88,6 @@ def define_argparser():
                    help='gradient clipping')
     p.add_argument('--momentum', type=float, default=0.02,
                    help='Momentum for batch normalization, typically ranges from 0.01 to 0.4 (default=0.02)')
-    p.add_argument('--epochs', type=int, default=1000,
-                   help='epochs')
     p.add_argument('--batch_size', type=int, default=200,
                    help='batch size')
     p.add_argument('--lr_decay_start', type=int, default=120,
@@ -119,14 +121,14 @@ def define_argparser():
     p.add_argument('--min_samp', type=int, default=1,
                    help='minimum number of sample to split node')
 
-    # regularization model
+    # reg
     p.add_argument('--alpha', type=float, default=1.)
 
     # experimental
     p.add_argument('--sum_reduction', action='store_true',
                    help='sum all embedding values and divide into embedding dimension')
     p.add_argument('--drop_text', action='store_true',
-                   help='drop text columns (set methods to "embedding")')
+                   help='drop text columns')
     config = p.parse_args()
 
     return config
@@ -170,7 +172,7 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
                                          valid_y,
                                          config)
     else:
-        print('ERROR: INVALID MODEL NAME (available: catboost / lgbm / tabnet)')
+        print('ERROR: INVALID MODEL NAME (available: catboost / lgbm / tabnet / rf / reg/ lr)')
         quit()
 
     return reg_lunch, reg_dinner
