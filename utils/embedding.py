@@ -3,6 +3,7 @@ from argparse import Namespace
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 import fasttext
 from konlpy.tag import Mecab
@@ -167,12 +168,12 @@ def embedding(config, train_df, valid_df, test_df):
         # ============================================================================
         elif config.text == 'menu':
             try :
-                result = pd.read_csv('./data/menu_embedding/embedding.csv', encoding='utf-8')
+                result = pd.read_csv('./data/menu_embedding/{}.csv'.format(config.menu_fn), encoding='utf-8')
                 print(result.tail())
             except :
                 print('MENU EMBEDDING FILE DOES NOT EXIST. MAKING EMBEDDING DATA.')
 
-                menu = pd.read_csv('./data/menu.sub.csv', encoding='utf-8')
+                menu = pd.read_csv('./data/menu_embedding/menu.sub.csv', encoding='utf-8')
                 menu_list = list(menu.menu)
 
                 # implemented by bpe alrogithm
@@ -191,69 +192,93 @@ def embedding(config, train_df, valid_df, test_df):
                     b[i] = re.sub('▁', '', b[i])
 
                 array = [d.split() for d in b]
-                breakfast = pd.DataFrame(np.zeros((len(array), menu.shape[1] - 1)))
-                for i in range(len(array)) :
+                breakfast = pd.DataFrame(np.zeros((len(array), menu.shape[1])))
+                for i in tqdm(range(len(array))) :
                     for j in range(len(array[i])) :
                         if array[i][j] in menu_list :
-                            breakfast.loc[i, :] += list(map(int, menu[menu['menu'] == array[i][j]].values.reshape(-1)[1 :]))
-                breakfast.columns = ['breakfast_{}'.format(i) for i in range(23)]
+                            breakfast.iloc[i, :23] += list(map(int, menu[menu['menu'] == array[i][j]].values.reshape(-1)[1 :]))
+                        else:
+                            breakfast.iloc[i, 23] += 1
+                breakfast.columns = ['breakfast_{}'.format(i) for i in range(23)] + ['oov_cnt.b']
                 print(breakfast.tail())
+
                 print('EMBEDDING LUNCH')
                 for i in range(len(l)) :
                     l[i] = l[i].rstrip()
                     l[i] = re.sub('▁', '', l[i])
 
                 array = [d.split() for d in l]
-                lunch = pd.DataFrame(np.zeros((len(array), menu.shape[1] - 1)))
-                for i in range(len(array)) :
+                lunch = pd.DataFrame(np.zeros((len(array), menu.shape[1])))
+                for i in tqdm(range(len(array))):
                     for j in range(len(array[i])) :
                         if array[i][j] in menu_list :
-                            lunch.loc[i, :] += list(map(int, menu[menu['menu'] == array[i][j]].values.reshape(-1)[1 :]))
-                lunch.columns = ['lunch_{}'.format(i) for i in range(23)]
+                            lunch.iloc[i, :23] += list(map(int, menu[menu['menu'] == array[i][j]].values.reshape(-1)[1 :]))
+                        else:
+                            lunch.iloc[i, 23] += 1
+                lunch.columns = ['lunch_{}'.format(i) for i in range(23)] + ['oov_cnt.l']
                 print(lunch.tail())
+
                 print('EMBEDDING DINNER')
                 for i in range(len(d)) :
                     d[i] = d[i].rstrip()
                     d[i] = re.sub('▁', '', d[i])
 
                 array = [x.split() for x in d]
-                dinner = pd.DataFrame(np.zeros((len(array), menu.shape[1] - 1)))
-                for i in range(len(array)) :
+                dinner = pd.DataFrame(np.zeros((len(array), menu.shape[1])))
+                for i in tqdm(range(len(array))):
                     for j in range(len(array[i])) :
                         if array[i][j] in menu_list :
-                            dinner.loc[i, :] += list(map(int, menu[menu['menu'] == array[i][j]].values.reshape(-1)[1 :]))
-                dinner.columns = ['dinner_{}'.format(i) for i in range(23)]
+                            dinner.iloc[i, :23] += list(map(int, menu[menu['menu'] == array[i][j]].values.reshape(-1)[1 :]))
+                        else:
+                            dinner.iloc[i, 23] += 1
+                dinner.columns = ['dinner_{}'.format(i) for i in range(23)] + ['oov_cnt.d']
                 print(dinner.tail())
+
                 result = pd.concat([breakfast.reset_index(drop=True),
                                     lunch.reset_index(drop=True),
                                     dinner.reset_index(drop=True)], axis=1)
                 print(result.tail())
-                result.to_csv('./data/menu_embedding/embedding.csv', index=False)
+                result.to_csv('./data/menu_embedding/{}.csv'.format(config.menu_fn), index=False)
 
-            if config.dim > 0 :
-                from sklearn.decomposition import PCA
+        if config.dim > 0 :
 
-                b_pca = PCA(n_components=config.dim)
-                l_pca = PCA(n_components=config.dim)
-                d_pca = PCA(n_components=config.dim)
+            from sklearn.decomposition import PCA
 
-                b_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], :23])
-                l_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], 23 :46])
-                d_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], 46 :69])
+            if config.oov_cnt:
+                oov_cnt_b = result['oov_cnt.b'].values.reshape(-1, 1)
+                oov_cnt_d = result['oov_cnt.d'].values.reshape(-1, 1)
+                oov_cnt_l = result['oov_cnt.l'].values.reshape(-1, 1)
 
-                print('========== PCA RESULT ==========')
-                print('breakfast explained variance', np.cumsum(b_pca.explained_variance_ratio_))
-                print('lunch explained variance', np.cumsum(l_pca.explained_variance_ratio_))
-                print('dinner explained variance', np.cumsum(d_pca.explained_variance_ratio_))
-                print()
+            b_pca = PCA(n_components=config.dim)
+            l_pca = PCA(n_components=config.dim)
+            d_pca = PCA(n_components=config.dim)
 
-                breakfast = b_pca.transform(result.iloc[:, :23].values)
-                lunch = l_pca.transform(result.iloc[:, 23 :46].values)
-                dinner = d_pca.transform(result.iloc[:, 46 :69].values)
+            b_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], :23])
+            l_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], 24 :47])
+            d_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], 48 :71])
 
-                result = pd.DataFrame(np.concatenate([breakfast,
-                                                      lunch,
-                                                      dinner], axis=1))
+            print('========== PCA RESULT ==========')
+            print('breakfast explained variance', np.cumsum(b_pca.explained_variance_ratio_))
+            print('lunch explained variance', np.cumsum(l_pca.explained_variance_ratio_))
+            print('dinner explained variance', np.cumsum(d_pca.explained_variance_ratio_))
+            print()
+
+            breakfast = b_pca.transform(result.iloc[:, :23].values)
+            lunch = l_pca.transform(result.iloc[:, 24 :47].values)
+            dinner = d_pca.transform(result.iloc[:, 48 :71].values)
+
+            concat_list = [breakfast, lunch, dinner, oov_cnt_b, oov_cnt_l, oov_cnt_d] if config.oov_cnt else [breakfast, lunch, dinner]
+            result = pd.DataFrame(np.concatenate(concat_list, axis=1))
+
+            if config.oov_cnt:
+                result.columns = ['breakfast_{}'.format(i) for i in range(config.dim)] + \
+                                 ['lunch_{}'.format(i) for i in range(config.dim)] + \
+                                 ['dinner_{}'.format(i) for i in range(config.dim)] + \
+                                 ['oov_cnt.b', 'oov_cnt.l', 'oov_cnt.d']
+            else:
+                result.columns = ['breakfast_{}'.format(i) for i in range(config.dim)] + \
+                                 ['lunch_{}'.format(i) for i in range(config.dim)] + \
+                                 ['dinner_{}'.format(i) for i in range(config.dim)]
 
             train_tmp = result[:train_df.shape[0]]
             valid_tmp = result[train_df.shape[0] :train_df.shape[0] + valid_df.shape[0]]

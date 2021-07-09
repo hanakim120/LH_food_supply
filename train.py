@@ -20,6 +20,9 @@ def define_argparser():
 
     p.add_argument('--text', type=str, default='embedding',
                    help='Method to preprocess text data (embedding / menu / autoencode)')
+    p.add_argument('--menu_fn', type=str, default='embedding.oov',
+                   help='menu embedding file name (csv format)')
+    p.add_argument('--oov_cnt', action='store_true')
     p.add_argument('--dim', type=int, default=3,
                    help='embedding dimension')
     p.add_argument('--seed', type=int, default=0,
