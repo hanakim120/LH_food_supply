@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-from utils.functions import get_month_average, process_holiday
+from utils.functions import get_month_average, process_holiday, get_week_average
 from utils.embedding import embedding
 
 
@@ -58,7 +58,7 @@ def get_data(config):
     sample = pd.read_csv('./data/sample_submission.csv', encoding='utf-8')
     TRAIN_LENGTH = 1205
 
-    train_df, test_df = process_holiday(train_df, test_df)
+    train_df, test_df = process_holiday(train_df, test_df, config)
     df = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)
 
     df = get_date(get_ratio(df))
@@ -115,6 +115,15 @@ def get_data(config):
     for i in range(df.shape[0]) :
         df.loc[i, '월저녁평균'] = averages[1][df.loc[i, 'month'] - 1]
 
+    averages = get_week_average(df[:TRAIN_LENGTH])
+
+    # df['주점심평균'] = 0
+    # for i in range(df.shape[0]) :
+    #     df.loc[i, '주점심평균'] = averages[0][df.loc[i, 'week']]
+    # df['주저녁평균'] = 0
+    # for i in range(df.shape[0]) :
+    #     df.loc[i, '주저녁평균'] = averages[1][df.loc[i, 'week']]
+
     # corona ===========================================
     # SRC: https://kdx.kr/data/view/25918
     corona = pd.read_csv('./data/corona/Covid19SidoInfState.csv')
@@ -144,7 +153,11 @@ def get_data(config):
     df = process_text(df)
 
     # Normalize
-    scaling_cols = ['공휴일길이', '출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', '강수량', '불쾌지수', '체감온도', '요일점심평균', '요일저녁평균', '월점심평균', '월저녁평균'] + corona_columns
+    scaling_cols = ['출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', '강수량', '불쾌지수', '체감온도',
+                    '요일점심평균', '요일저녁평균', '월점심평균', '월저녁평균'] + corona_columns
+    if config.holiday_length:
+        scaling_cols += ['공휴일길이']
+
     for col in scaling_cols :
         ms = MinMaxScaler()
         ms.fit(df[col][:TRAIN_LENGTH].values.reshape(-1, 1))
@@ -154,13 +167,16 @@ def get_data(config):
     le.fit(df.요일.values[:TRAIN_LENGTH])
     df.요일 = le.transform(df.요일.values)
 
-    if config.dummy_cat or config.model == 'rf' or config.model == 'randomforest' or config.model == 'reg':
+    # feature_selection
+    df.drop(columns=['체감온도', 'day', 'month', '요일', '출근'], inplace=True)
+
+    if config.dummy_cat:
         df = pd.get_dummies(df, columns=['요일', '공휴일전후', 'month', 'week'])
 
     np.random.seed(config.seed)
     idx = np.random.permutation(TRAIN_LENGTH)
-    train_idx = idx[:1000]
-    valid_idx = idx[1000:]
+    train_idx = idx[:config.train_size]
+    valid_idx = idx[config.train_size:]
 
     train_df = df.iloc[train_idx, :]
     valid_df = df.iloc[valid_idx, :]
@@ -182,9 +198,8 @@ def get_data(config):
     valid_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴', '일자'], inplace=True)
     test_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴', '일자'], inplace=True)
 
-    # train_df = train_df.reset_index(drop=True).drop(index=[870])
-    # train_y = train_y.reset_index(drop=True).drop(index=[870])
-
+    pd.concat([train_df, valid_df], axis=0).to_csv('./data.csv', index=False, encoding='utf-8-sig')
+    pd.concat([train_y, valid_y], axis=0).to_csv('./target.csv', index=False, encoding='utf-8-sig')
     print('=' * 10, 'MESSAGE: DATA LOADED SUCCESSFULLY', '=' * 10)
     print('|TRAIN| : {} |VALID| : {} |TEST| : {}'.format(train_df.shape, valid_df.shape, test_df.shape))
     print('Missing values: {}'.format(np.isnan(train_df).sum().sum()))

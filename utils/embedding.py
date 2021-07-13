@@ -241,7 +241,6 @@ def embedding(config, train_df, valid_df, test_df):
                 result.to_csv('./data/menu_embedding/{}.csv'.format(config.menu_fn), index=False)
 
         if config.dim > 0 :
-
             from sklearn.decomposition import PCA
 
             if config.oov_cnt:

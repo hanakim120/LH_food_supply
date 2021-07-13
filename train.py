@@ -2,12 +2,13 @@ import argparse
 import warnings
 warnings.filterwarnings(action='ignore')
 
-from module.data_loader import get_data
+import pandas as pd
 
+from module.data_loader import get_data
 from module.model.lgbm import train_lgbm
 from module.model.catboost import train_catboost
 from module.model.tabnet import train_tabnet
-from module.model.randomforest import train_randomforest
+from module.model.tree import train_randomforest, train_extratree, train_gradient_boosting, train_decision_tree
 from module.model.regularized_regression import train_reg_model
 from module.model.linear_regression import train_lr
 
@@ -18,11 +19,13 @@ def define_argparser():
                    help='''model selection. result file will be saved as "./data/submission_[model].csv"
                    (catboost / lgbm / lr / rf / reg / tabnet)''')
 
-    p.add_argument('--text', type=str, default='embedding',
+    p.add_argument('--text', type=str, default='menu',
                    help='Method to preprocess text data (embedding / menu / autoencode)')
+    p.add_argument('--train_size', type=int, default=1000)
     p.add_argument('--menu_fn', type=str, default='embedding.oov',
                    help='menu embedding file name (csv format)')
     p.add_argument('--oov_cnt', action='store_true')
+    p.add_argument('--holiday_length', action='store_true')
     p.add_argument('--dim', type=int, default=3,
                    help='embedding dimension')
     p.add_argument('--seed', type=int, default=0,
@@ -62,7 +65,7 @@ def define_argparser():
                    help='growth stop criterion')
     p.add_argument('--has_time', type=bool, default=True,
                    help='whether randomly shuffle datas or not')
-    p.add_argument('--rsm', type=float, default=.9,
+    p.add_argument('--rsm', type=float, default=1.0,
                    help='random feature sampling ratio')
 
     # Tabnet
@@ -136,7 +139,15 @@ def define_argparser():
 
     return config
 
-def get_model(config, train_df, valid_df, train_y, valid_y):
+def get_model(
+        config,
+        train_df,
+        valid_df,
+        train_y,
+        valid_y,
+        lunch_drop_col,
+        dinner_drop_col
+):
     if config.model == 'catboost':
         reg_lunch, reg_dinner = train_catboost(train_df,
                                                 valid_df,
@@ -156,8 +167,20 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
                                              train_y,
                                              valid_y,
                                              config)
-    elif config.model == 'rf' or config.model == 'randomforest':
+    elif config.model == 'rf':
         reg_lunch, reg_dinner = train_randomforest(train_df,
+                                                   valid_df,
+                                                   train_y,
+                                                   valid_y,
+                                                   config)
+    elif config.model == 'et':
+        reg_lunch, reg_dinner = train_extratree(train_df,
+                                                   valid_df,
+                                                   train_y,
+                                                   valid_y,
+                                                   config)
+    elif config.model == 'gb':
+        reg_lunch, reg_dinner = train_gradient_boosting(train_df,
                                                    valid_df,
                                                    train_y,
                                                    valid_y,
@@ -173,6 +196,14 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
                                          valid_df,
                                          train_y,
                                          valid_y,
+                                         config,
+                                         lunch_drop_col,
+                                         dinner_drop_col)
+    elif config.model == 'dt':
+        reg_lunch, reg_dinner = train_decision_tree(train_df,
+                                         valid_df,
+                                         train_y,
+                                         valid_y,
                                          config)
     else:
         print('ERROR: INVALID MODEL NAME (available: catboost / lgbm / tabnet / rf / reg/ lr)')
@@ -180,9 +211,9 @@ def get_model(config, train_df, valid_df, train_y, valid_y):
 
     return reg_lunch, reg_dinner
 
-def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new'):
-    test_lunch = test_df.drop(columns=['월저녁평균','요일저녁평균'])
-    test_dinner = test_df.drop(columns=['월점심평균','요일점심평균'])
+def save_submission(config, reg_lunch, reg_dinner, test_df, sample, lunch_drop_col, dinner_drop_col, file_fn='new'):
+    test_lunch = test_df.drop(columns=lunch_drop_col)
+    test_dinner = test_df.drop(columns=dinner_drop_col)
     if type(reg_lunch) == dict:
         k = config.k
         for i in range(k):
@@ -201,6 +232,21 @@ def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new
             sample.석식계 = reg_dinner.predict(test_dinner)
 
         sample.to_csv('./result/submission_{}.csv'.format(file_fn), index=False)
+
+    base = pd.read_csv('./result/submission_lr.base.csv', encoding='utf-8')
+
+    lunch_diff = 0
+    dinner_diff = 0
+    for i in range(50) :
+        lunch_diff += abs(base.중식계[i] - sample.중식계[i])
+        dinner_diff += abs(base.석식계[i] - sample.석식계[i])
+    lunch_diff /= 50
+    dinner_diff /= 50
+    total_diff = (lunch_diff + dinner_diff) / 2
+
+    print('DIFFRENCE (LUNCH) :', lunch_diff if lunch_diff > 1e-3 else 0)
+    print('DIFFRENCE (DINNER) :', dinner_diff if dinner_diff > 1e-3 else 0)
+    print('AVERAGE DIFFERENCE :', total_diff if total_diff > 1e-3 else 0)
     print('=' * 10, 'SAVE COMPLETED', '=' * 10)
     print(sample.head())
 
@@ -208,8 +254,22 @@ def save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn='new
 def main(config):
     train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
 
-    reg_lunch, reg_dinner = get_model(config, train_df, valid_df, train_y, valid_y)
-    save_submission(config, reg_lunch, reg_dinner, test_df, sample, file_fn=config.model)
+    lunch_drop_col = ['공휴일길이']
+    dinner_drop_col = ['강수량',
+                       'breakfast_0', 'breakfast_1', 'breakfast_2',
+                       'lunch_0', 'lunch_1', 'lunch_2',
+                       'dinner_0', 'dinner_1', 'dinner_2']
+
+    reg_lunch, reg_dinner = get_model(
+        config,
+        train_df,
+        valid_df,
+        train_y,
+        valid_y,
+        lunch_drop_col,
+        dinner_drop_col
+    )
+    save_submission(config, reg_lunch, reg_dinner, test_df, sample, lunch_drop_col, dinner_drop_col, file_fn=config.model)
 
 
 if __name__ == '__main__':

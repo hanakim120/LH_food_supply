@@ -7,11 +7,15 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold
 
 
-def train_lr(train_df,
-                    valid_df,
-                    train_y,
-                    valid_y,
-                    config):
+def train_lr(
+        train_df,
+        valid_df,
+        train_y,
+        valid_y,
+        config,
+        lunch_drop_col,
+        dinner_drop_col
+         ):
 
     print('Columns: ', np.array(train_df.columns))
 
@@ -29,8 +33,8 @@ def train_lr(train_df,
         for fold in range(config.k) :
             print(f'===================================={fold + 1}============================================')
             train_idx, valid_idx = folds[fold]
-            X_train, X_valid, y_train, y_valid = train_df.drop(columns=['월저녁평균', '요일저녁평균']).iloc[train_idx], \
-                                                 train_df.drop(columns=['월저녁평균', '요일저녁평균']).iloc[valid_idx], \
+            X_train, X_valid, y_train, y_valid = train_df.drop(columns=lunch_drop_col).iloc[train_idx], \
+                                                 train_df.drop(columns=lunch_drop_col).iloc[valid_idx], \
                                                  train_y.중식계.iloc[train_idx], train_y.중식계.iloc[valid_idx]
 
             reg_lunch_ = LinearRegression(normalize=True)
@@ -41,8 +45,8 @@ def train_lr(train_df,
             mae_lunch = mean_absolute_error(y_pred_lunch, y_valid)
             scores_lunch.append(mae_lunch)
 
-            X_train, X_valid, y_train, y_valid = train_df.drop(columns=['월점심평균', '요일점심평균']).iloc[train_idx], \
-                                                 train_df.drop(columns=['월점심평균', '요일점심평균']).iloc[valid_idx], \
+            X_train, X_valid, y_train, y_valid = train_df.drop(columns=dinner_drop_col).iloc[train_idx], \
+                                                 train_df.drop(columns=dinner_drop_col).iloc[valid_idx], \
                                                  train_y.석식계.iloc[train_idx], train_y.석식계.iloc[valid_idx]
             reg_dinner_ = LinearRegression(normalize=True)
             reg_dinner_.fit(X_train, y_train)
@@ -66,12 +70,12 @@ def train_lr(train_df,
 
         reg_lunch = LinearRegression(normalize=True)
 
-        reg_lunch.fit(train_df.drop(columns=['월저녁평균','요일저녁평균']), train_y.중식계)
+        reg_lunch.fit(train_df.drop(columns=lunch_drop_col), train_y.중식계)
 
-        y_pred_lunch = reg_lunch.predict(valid_df.drop(columns=['월저녁평균','요일저녁평균']))
+        y_pred_lunch = reg_lunch.predict(valid_df.drop(columns=lunch_drop_col))
         mae_lunch = mean_absolute_error(y_pred_lunch, valid_y.중식계)
 
-        print('(Lunch) train score : ', mean_absolute_error(reg_lunch.predict(train_df.drop(columns=['월저녁평균', '요일저녁평균'])), train_y.중식계))
+        print('(Lunch) train score : ', mean_absolute_error(reg_lunch.predict(train_df.drop(columns=lunch_drop_col)), train_y.중식계))
         print('        valid score: ', mae_lunch)
         print()
 
@@ -80,11 +84,11 @@ def train_lr(train_df,
         print('=' * 10, 'TRAIN DINNER MODEL', '=' * 10)
 
         reg_dinner = LinearRegression(normalize=True)
-        reg_dinner.fit(train_df.drop(columns=['월점심평균','요일점심평균']), train_y.석식계)
+        reg_dinner.fit(train_df.drop(columns=dinner_drop_col), train_y.석식계)
 
-        y_pred_dinner = reg_dinner.predict(valid_df.drop(columns=['월점심평균','요일점심평균']))
+        y_pred_dinner = reg_dinner.predict(valid_df.drop(columns=dinner_drop_col))
         mae_dinner = mean_absolute_error(y_pred_dinner, valid_y.석식계)
-        print('(Dinner) train score : ', mean_absolute_error(reg_dinner.predict(train_df.drop(columns=['월점심평균', '요일점심평균'])), train_y.석식계))
+        print('(Dinner) train score : ', mean_absolute_error(reg_dinner.predict(train_df.drop(columns=dinner_drop_col)), train_y.석식계))
         print('         valid score: ', mae_dinner)
         print()
 
