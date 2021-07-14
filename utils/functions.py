@@ -196,16 +196,16 @@ def get_week_average(train):
             if train.loc[i, 'week'] == 0 :
                 주1 += train.loc[i, col]
                 주1cnt += 1
-            elif train.loc[i, 'month'] == 1 :
+            elif train.loc[i, 'week'] == 1 :
                 주2 += train.loc[i, col]
                 주2cnt += 1
-            elif train.loc[i, 'month'] == 2 :
+            elif train.loc[i, 'week'] == 2 :
                 주3 += train.loc[i, col]
                 주3cnt += 1
-            elif train.loc[i, 'month'] == 3 :
+            elif train.loc[i, 'week'] == 3 :
                 주4 += train.loc[i, col]
                 주4cnt += 1
-            elif train.loc[i, 'month'] == 4 :
+            elif train.loc[i, 'week'] == 4 :
                 주5 += train.loc[i, col]
                 주5cnt += 1
 

@@ -26,8 +26,14 @@ def define_argparser():
                    help='menu embedding file name (csv format)')
     p.add_argument('--oov_cnt', action='store_true')
     p.add_argument('--holiday_length', action='store_true')
+    p.add_argument('--week_average', action='store_true')
+    p.add_argument('--dust', action='store_true')
     p.add_argument('--dim', type=int, default=3,
                    help='embedding dimension')
+    p.add_argument('--pca_dim', type=int, default=0,
+                   help='conduct PCA on the whole data when this parameter is larger than 0')
+    p.add_argument('--feature_selection', action='store_true',
+                   help='use only statistically valid features')
     p.add_argument('--seed', type=int, default=0,
                    help='random seed')
     p.add_argument('--dummy_cat', action='store_true',
@@ -63,10 +69,9 @@ def define_argparser():
     # catboost
     p.add_argument('--depth', type=int, default=3,
                    help='growth stop criterion')
-    p.add_argument('--has_time', type=bool, default=True,
-                   help='whether randomly shuffle datas or not')
     p.add_argument('--rsm', type=float, default=1.0,
                    help='random feature sampling ratio')
+    p.add_argument('--l2', type=float, default=0.)
 
     # Tabnet
     p.add_argument('--n_d', type=int, default=8,
@@ -254,11 +259,17 @@ def save_submission(config, reg_lunch, reg_dinner, test_df, sample, lunch_drop_c
 def main(config):
     train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
 
-    lunch_drop_col = ['공휴일길이']
-    dinner_drop_col = ['강수량',
-                       'breakfast_0', 'breakfast_1', 'breakfast_2',
-                       'lunch_0', 'lunch_1', 'lunch_2',
-                       'dinner_0', 'dinner_1', 'dinner_2']
+    # if config.feature_selection:
+    #     lunch_drop_col = ['월저녁평균', '요일저녁평균', '재택비율', 'breakfast_2', 'lunch_0', 'lunch_1', '공휴일길이']
+    #     dinner_drop_col = ['요일점심평균', '월점심평균', '요일저녁평균', '전일대비증감', 'lunch_0', 'lunch_1']
+    # else:
+
+    lunch_drop_col = ['월저녁평균', '요일저녁평균']
+    dinner_drop_col = ['요일점심평균', '월점심평균']
+    if config.week_average:
+        lunch_drop_col += ['주저녁평균']
+        dinner_drop_col += ['주점심평균']
+
 
     reg_lunch, reg_dinner = get_model(
         config,

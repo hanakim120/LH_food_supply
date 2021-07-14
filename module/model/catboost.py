@@ -13,10 +13,10 @@ def train_catboost(train_df,
                    train_y,
                    valid_y,
                    config):
-    if not config.dummy_cat:
-        cat_features = [0, 1, 9, 11, 16] # 요일, 공휴일전후, month, week, 체감온도, 폭염
-    else:
-        cat_features = []
+    # if not config.dummy_cat:
+    #     cat_features = [0, 1, 9, 11] # 요일, 공휴일전후, month, week, 체감온도, 폭염
+    # else:
+    cat_features = []
 
     print('Columns: ', np.array(train_df.columns))
     print('Categorical Value: ', np.array(train_df.columns)[cat_features])
@@ -103,20 +103,20 @@ def train_catboost(train_df,
         valid_pool_lunch = Pool(valid_df.drop(columns=['월저녁평균','요일저녁평균']), valid_y.중식계, cat_features=cat_features)
 
         reg_lunch = CatBoostRegressor(loss_function='MAE',
-                                       has_time=True,
-                                       eval_metric='MAE',
-                                       iterations=3000,
-                                       depth=config.depth,
-                                       rsm=config.rsm,
-                                       boost_from_average=True,
-                                       reg_lambda=20.0,
-                                       random_seed=0
+                                      eval_metric='MAE',
+                                      iterations=config.epochs,
+                                      depth=config.depth,
+                                      rsm=config.rsm,
+                                      boost_from_average=True,
+                                      l2_leaf_reg=config.l2,
+                                      random_seed=config.seed,
+                                      learning_rate=config.lr
                                        )
 
         reg_lunch.fit(train_pool_lunch,
                        eval_set=valid_pool_lunch,
                        use_best_model=True,
-                       early_stopping_rounds=100,
+                       early_stopping_rounds=50,
                        verbose=config.verbose)
 
         y_pred_lunch = reg_lunch.predict(valid_df)
@@ -128,20 +128,20 @@ def train_catboost(train_df,
         valid_pool_lunch = Pool(valid_df.drop(columns=['월점심평균','요일점심평균']), valid_y.석식계, cat_features=cat_features)
 
         reg_dinner = CatBoostRegressor(loss_function='MAE',
-                                       has_time=True,
                                        eval_metric='MAE',
-                                       iterations=3000,
+                                       iterations=config.epochs,
                                        depth=config.depth,
                                        rsm=config.rsm,
                                        boost_from_average=True,
-                                       reg_lambda=20.0,
-                                       random_seed=0
+                                       l2_leaf_reg=config.l2,
+                                       random_seed=config.seed,
+                                       learning_rate=config.lr,
                                        )
 
         reg_dinner.fit(train_pool_lunch,
                        eval_set=valid_pool_lunch,
                        use_best_model=True,
-                       early_stopping_rounds=100,
+                       early_stopping_rounds=50,
                        verbose=config.verbose)
 
         y_pred_dinner = reg_dinner.predict(valid_df)

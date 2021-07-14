@@ -256,11 +256,11 @@ def embedding(config, train_df, valid_df, test_df):
             l_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], 24 :47])
             d_pca.fit(result.iloc[:train_df.shape[0] + valid_df.shape[0], 48 :71])
 
-            print('========== PCA RESULT ==========')
-            print('breakfast explained variance', np.cumsum(b_pca.explained_variance_ratio_))
-            print('lunch explained variance', np.cumsum(l_pca.explained_variance_ratio_))
-            print('dinner explained variance', np.cumsum(d_pca.explained_variance_ratio_))
-            print()
+            # print('========== PCA RESULT ==========')
+            # print('breakfast explained variance', np.cumsum(b_pca.explained_variance_ratio_))
+            # print('lunch explained variance', np.cumsum(l_pca.explained_variance_ratio_))
+            # print('dinner explained variance', np.cumsum(d_pca.explained_variance_ratio_))
+            # print()
 
             breakfast = b_pca.transform(result.iloc[:, :23].values)
             lunch = l_pca.transform(result.iloc[:, 24 :47].values)

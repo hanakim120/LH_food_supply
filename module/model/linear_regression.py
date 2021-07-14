@@ -1,6 +1,7 @@
 import random
 
 import numpy as np
+import pandas as pd
 
 from sklearn.metrics import mean_absolute_error
 from sklearn.linear_model import LinearRegression
@@ -20,6 +21,9 @@ def train_lr(
     print('Columns: ', np.array(train_df.columns))
 
     if config.k > 0 :
+        train_df = pd.concat([train_df, valid_df], axis=0)
+        train_y = pd.concat([train_y, valid_y], axis=0)
+
         skf = KFold(n_splits=config.k, shuffle=True, random_state=config.seed)
         folds = []
         for train_idx, valid_idx in skf.split(train_df, train_y.중식계) :
@@ -68,7 +72,7 @@ def train_lr(
     else :
         print('=' * 10, 'TRAIN LUNCH MODEL', '=' * 10)
 
-        reg_lunch = LinearRegression(normalize=True)
+        reg_lunch = LinearRegression()
 
         reg_lunch.fit(train_df.drop(columns=lunch_drop_col), train_y.중식계)
 
@@ -83,7 +87,7 @@ def train_lr(
         # ===========================================================================================
         print('=' * 10, 'TRAIN DINNER MODEL', '=' * 10)
 
-        reg_dinner = LinearRegression(normalize=True)
+        reg_dinner = LinearRegression()
         reg_dinner.fit(train_df.drop(columns=dinner_drop_col), train_y.석식계)
 
         y_pred_dinner = reg_dinner.predict(valid_df.drop(columns=dinner_drop_col))
