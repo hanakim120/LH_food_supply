@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+
 def process_holiday(train_df, test_df, config):
     # 공휴일 전후
     train_df['공휴일전후'] = 0
@@ -219,3 +223,54 @@ def get_week_average(train):
         arrays.append(array)
 
     return arrays
+
+def drop_outlier(train_df, valid_df, train_y, valid_y, config):
+    # _train_df = pd.concat([train_df, valid_df], axis=0)
+    # _train_y = pd.concat([train_y, valid_y], axis=0)
+    # if config.outlier == 'fox' :
+    #     idx1 = [10, 35, 44, 107, 109, 127, 152, 196, 207, 225, 238, 267, 285, 304,
+    #             311, 341, 344, 351, 353, 382, 384, 401, 403, 426, 434, 466, 492, 530,
+    #             537, 553, 642, 665, 692, 704, 716, 724, 742, 743, 762, 779, 787, 796,
+    #             799, 805, 807, 819, 825, 852, 881, 882, 901, 903, 920, 954, 990, 998,
+    #             1002, 1004, 1017, 1031, 1041, 1056, 1058, 1097, 1106, 1119, 1133, 1153, 1167, 1168,
+    #             1176, 1179, 1194, 1197]
+    #     idx2 = [9, 16, 25, 41, 72, 78, 84, 152, 169, 201, 221, 259, 260, 264,
+    #             274, 311, 320, 351, 353, 365, 382, 400, 403, 404, 448, 455, 464, 480,
+    #             484, 492, 497, 507, 535, 552, 594, 614, 644, 659, 673, 675, 681, 702,
+    #             704, 713, 716, 724, 727, 737, 739, 745, 746, 751, 769, 787, 801, 825,
+    #             835, 852, 854, 864, 870, 874, 881, 887, 894, 895, 920, 936, 948, 990,
+    #             1007, 1017, 1058, 1092, 1097, 1098, 1119, 1132, 1140, 1143, 1145, 1153, 1164, 1165,
+    #             1168, 1176, 1179]
+    # elif config.outlier == 'simple' :
+    #     idx1 = [492]
+    #     idx2 = [492]
+    # else :
+    #     raise NotImplementedError
+    model = sm.OLS(train_y.중식계.reset_index(drop=True), sm.add_constant(train_df).reset_index(drop=True))
+    result = model.fit()
+    influence = result.get_influence()
+    cooks_d2, pvals = influence.cooks_distance
+    k = influence.k_vars
+    fox_cr = 4 / (len(train_y) - k - 1)
+
+    idx = np.where(cooks_d2 > fox_cr)[0]
+
+
+    lunch_idx = list(set(range(len(train_df))).difference(idx))
+    lunch_df = train_df.iloc[lunch_idx, :].reset_index(drop=True)
+    lunch_y = train_y.iloc[lunch_idx, :].reset_index(drop=True)
+
+    model = sm.OLS(train_y.석식계.reset_index(drop=True), sm.add_constant(train_df).reset_index(drop=True))
+    result = model.fit()
+    influence = result.get_influence()
+    cooks_d2, pvals = influence.cooks_distance
+    k = influence.k_vars
+    fox_cr = 4 / (len(train_y) - k - 1)
+
+    idx = np.where(cooks_d2 > fox_cr)[0]
+
+    dinner_idx = list(set(range(len(train_df))).difference(idx))
+    dinner_df = train_df.iloc[dinner_idx, :].reset_index(drop=True)
+    dinner_y = train_y.iloc[dinner_idx, :].reset_index(drop=True)
+
+    return lunch_df, lunch_y, dinner_df, dinner_y, valid_df, valid_y

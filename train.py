@@ -25,15 +25,16 @@ def define_argparser():
     p.add_argument('--menu_fn', type=str, default='embedding.oov',
                    help='menu embedding file name (csv format)')
     p.add_argument('--oov_cnt', action='store_true')
+    p.add_argument('--weather', action='store_true')
     p.add_argument('--holiday_length', action='store_true')
-    p.add_argument('--week_average', action='store_true')
     p.add_argument('--dust', action='store_true')
+    p.add_argument('--outlier', action='store_true')
     p.add_argument('--dim', type=int, default=3,
                    help='embedding dimension')
     p.add_argument('--pca_dim', type=int, default=0,
                    help='conduct PCA on the whole data when this parameter is larger than 0')
-    p.add_argument('--feature_selection', action='store_true',
-                   help='use only statistically valid features')
+    p.add_argument('--feature_selection', type=str, default=None,
+                   help='use only statistically valid features (cat / multicol / None)')
     p.add_argument('--seed', type=int, default=0,
                    help='random seed')
     p.add_argument('--dummy_cat', action='store_true',
@@ -257,29 +258,50 @@ def save_submission(config, reg_lunch, reg_dinner, test_df, sample, lunch_drop_c
 
 
 def main(config):
-    train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
+    if config.outlier:
+        lunch_df, lunch_y, dinner_df, dinner_y, valid_df, valid_y, test_df, sample = get_data(config)
+    else:
+        train_df, valid_df, test_df, train_y, valid_y, sample = get_data(config)
 
     # if config.feature_selection:
     #     lunch_drop_col = ['월저녁평균', '요일저녁평균', '재택비율', 'breakfast_2', 'lunch_0', 'lunch_1', '공휴일길이']
     #     dinner_drop_col = ['요일점심평균', '월점심평균', '요일저녁평균', '전일대비증감', 'lunch_0', 'lunch_1']
     # else:
+    if config.pca_dim <= 0:
+        lunch_drop_col = ['월저녁평균', '요일저녁평균']
+        dinner_drop_col = ['요일점심평균', '월점심평균']
+    else:
+        lunch_drop_col, dinner_drop_col = [], []
 
-    lunch_drop_col = ['월저녁평균', '요일저녁평균']
-    dinner_drop_col = ['요일점심평균', '월점심평균']
-    if config.week_average:
-        lunch_drop_col += ['주저녁평균']
-        dinner_drop_col += ['주점심평균']
-
-
-    reg_lunch, reg_dinner = get_model(
-        config,
-        train_df,
-        valid_df,
-        train_y,
-        valid_y,
-        lunch_drop_col,
-        dinner_drop_col
-    )
+    if config.outlier:
+        reg_lunch, _ = get_model(
+            config,
+            lunch_df,
+            valid_df,
+            lunch_y,
+            valid_y,
+            lunch_drop_col,
+            dinner_drop_col
+        )
+        _, reg_dinner = get_model(
+            config,
+            dinner_df,
+            valid_df,
+            dinner_y,
+            valid_y,
+            lunch_drop_col,
+            dinner_drop_col
+        )
+    else:
+        reg_lunch, reg_dinner = get_model(
+            config,
+            train_df,
+            valid_df,
+            train_y,
+            valid_y,
+            lunch_drop_col,
+            dinner_drop_col
+        )
     save_submission(config, reg_lunch, reg_dinner, test_df, sample, lunch_drop_col, dinner_drop_col, file_fn=config.model)
 
 

@@ -41,7 +41,7 @@ def train_lr(
                                                  train_df.drop(columns=lunch_drop_col).iloc[valid_idx], \
                                                  train_y.중식계.iloc[train_idx], train_y.중식계.iloc[valid_idx]
 
-            reg_lunch_ = LinearRegression(normalize=True)
+            reg_lunch_ = LinearRegression()
             reg_lunch_.fit(X_train, y_train)
 
             reg_lunch[fold] = reg_lunch_
@@ -52,7 +52,7 @@ def train_lr(
             X_train, X_valid, y_train, y_valid = train_df.drop(columns=dinner_drop_col).iloc[train_idx], \
                                                  train_df.drop(columns=dinner_drop_col).iloc[valid_idx], \
                                                  train_y.석식계.iloc[train_idx], train_y.석식계.iloc[valid_idx]
-            reg_dinner_ = LinearRegression(normalize=True)
+            reg_dinner_ = LinearRegression()
             reg_dinner_.fit(X_train, y_train)
 
             reg_dinner[fold] = reg_dinner_

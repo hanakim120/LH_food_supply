@@ -1,10 +1,11 @@
+import sys, os
 import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-from utils.functions import get_month_average, process_holiday, get_week_average
 from utils.embedding import embedding
+from utils.functions import get_month_average, process_holiday, get_week_average, drop_outlier
 
 
 def get_ratio(df):
@@ -65,22 +66,23 @@ def get_data(config):
 
     # weather =================================
     # SRC: https://www.weatheri.co.kr/index.php
-    weather_columns = ['일자', '최고기온', '평균기온', '강수량', '습도', '풍속']
-    weather = pd.read_csv('./data/temp.csv', encoding='utf-8')[weather_columns]
-    df = pd.merge(df, weather, on='일자')
+    if config.weather:
+        weather_columns = ['일자', '최고기온', '평균기온', '강수량', '습도', '풍속']
+        weather = pd.read_csv('./data/temp.csv', encoding='utf-8')[weather_columns]
+        df = pd.merge(df, weather, on='일자')
 
-    df['불쾌지수'] = 0
-    df['체감온도'] = 0
+        df['불쾌지수'] = 0
+        df['체감온도'] = 0
 
-    df['폭염'] = 0
-    df.reset_index(drop=True, inplace=True)
-    for i in range(df.shape[0]):
-        df.loc[i, '불쾌지수'] = (9. * df.loc[i, '평균기온'] / 5.) - (0.55 * (1 - df.loc[i, '습도']) * ((9. * df.loc[i, '평균기온'] / 5.) - 26)) + 32
-        df.loc[i, '체감온도'] = 13.12 + (0.6215 * df.loc[i, '평균기온']) - (11.37 * (df.loc[i, '풍속'] ** 0.16)) + (0.3965 * (df.loc[i, '풍속'] ** 0.16) * df.loc[i, '평균기온'])
-        if df.loc[i, '최고기온'] > 33:
-            df.loc[i, '폭염'] = 1
+        df['폭염'] = 0
+        df.reset_index(drop=True, inplace=True)
+        for i in range(df.shape[0]):
+            df.loc[i, '불쾌지수'] = (9. * df.loc[i, '평균기온'] / 5.) - (0.55 * (1 - df.loc[i, '습도']) * ((9. * df.loc[i, '평균기온'] / 5.) - 26)) + 32
+            df.loc[i, '체감온도'] = 13.12 + (0.6215 * df.loc[i, '평균기온']) - (11.37 * (df.loc[i, '풍속'] ** 0.16)) + (0.3965 * (df.loc[i, '풍속'] ** 0.16) * df.loc[i, '평균기온'])
+            if df.loc[i, '최고기온'] > 33:
+                df.loc[i, '폭염'] = 1
 
-    df.drop(columns=['평균기온', '습도', '풍속', '최고기온'], inplace=True)
+        df.drop(columns=['평균기온', '습도', '풍속', '최고기온'], inplace=True)
     # weather =================================
 
     # dust ====================================
@@ -130,15 +132,16 @@ def get_data(config):
     for i in range(df.shape[0]) :
         df.loc[i, '월저녁평균'] = averages[1][df.loc[i, 'month'] - 1]
 
-    if config.week_average:
-        averages = get_week_average(df[:TRAIN_LENGTH])
+    # if config.week_average:
+    #     averages = get_week_average(df[:TRAIN_LENGTH])
+    #
+    #     df['주점심평균'] = 0
+    #     for i in range(df.shape[0]) :
+    #         df.loc[i, '주점심평균'] = averages[0][df.loc[i, 'week']]
+    #     df['주저녁평균'] = 0
+    #     for i in range(df.shape[0]) :
+    #         df.loc[i, '주저녁평균'] = averages[1][df.loc[i, 'week']]
 
-        df['주점심평균'] = 0
-        for i in range(df.shape[0]) :
-            df.loc[i, '주점심평균'] = averages[0][df.loc[i, 'week']]
-        df['주저녁평균'] = 0
-        for i in range(df.shape[0]) :
-            df.loc[i, '주저녁평균'] = averages[1][df.loc[i, 'week']]
     # corona ===========================================
     # SRC: https://kdx.kr/data/view/25918
     corona = pd.read_csv('./data/corona/Covid19SidoInfState.csv')
@@ -168,12 +171,14 @@ def get_data(config):
     df = process_text(df)
 
     # Normalize
-    scaling_cols = ['출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year', '강수량', '불쾌지수', '체감온도',
+    scaling_cols = ['출근', '휴가비율', '야근비율', '재택비율', '출장비율', 'year',
                     '요일점심평균', '요일저녁평균', '월점심평균', '월저녁평균', 'day', 'month', 'week'] + corona_columns
+    if config.weather:
+        scaling_cols += ['강수량', '불쾌지수', '체감온도']
+    # if config.week_average:
+    #     scaling_cols += ['주저녁평균', '주점심평균']
     if config.holiday_length:
         scaling_cols += ['공휴일길이']
-    if config.week_average :
-        scaling_cols += ['주저녁평균', '주점심평균']
 
     for col in scaling_cols :
         ms = StandardScaler()
@@ -185,8 +190,12 @@ def get_data(config):
     df.요일 = le.transform(df.요일.values)
 
     # feature_selection
-    if config.feature_selection:
-        df.drop(columns=['month', '요일', '체감온도', '출근', 'day'], inplace=True)
+    if config.feature_selection == 'cat':
+        drop_cols = ['요일', 'month']
+        df.drop(columns=drop_cols, inplace=True)
+
+    elif config.feature_selection == 'multicol':
+        df.drop(columns=['체감온도', '출근', '요일', 'month', 'week', '사망자수', '확진자수'], inplace=True)
     else:
         if config.dummy_cat:
             df = pd.get_dummies(df, columns=['요일', '공휴일전후', 'month', 'week'])
@@ -212,13 +221,6 @@ def get_data(config):
     valid_df = pd.concat([valid_df.reset_index(drop=True), valid_tmp.reset_index(drop=True)], axis=1)
     test_df = pd.concat([test_df.reset_index(drop=True), test_tmp.reset_index(drop=True)], axis=1)
 
-    scaling_cols = ['breakfast_0', 'breakfast_1', 'breakfast_2', 'lunch_0', 'lunch_1', 'lunch_2', 'dinner_0', 'dinner_1', 'dinner_2']
-
-    for col in scaling_cols :
-        ms = StandardScaler()
-        ms.fit(train_df[col].values.reshape(-1, 1))
-        valid_df[col] = ms.transform(valid_df[col].values.reshape(-1, 1))
-        test_df[col] = ms.transform(test_df[col].values.reshape(-1, 1))
 
     train_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴', '일자'], inplace=True)
     valid_df.drop(columns=['조식메뉴', '중식메뉴', '석식메뉴', '일자'], inplace=True)
@@ -238,9 +240,15 @@ def get_data(config):
         print('========== PCA RESULT ==========')
         print('Explained variance', np.cumsum(pca.explained_variance_ratio_))
 
+    if config.outlier is not None:
+        lunch_df, lunch_y, dinner_df, dinner_y, valid_df, valid_y = drop_outlier(train_df, valid_df, train_y, valid_y, config)
+
+        return lunch_df, lunch_y, dinner_df, dinner_y, valid_df, valid_y, test_df, sample
+
     # for experiment
     pd.concat([train_df, valid_df], axis=0).to_csv('./data.csv', index=False, encoding='utf-8-sig')
     pd.concat([train_y, valid_y], axis=0).to_csv('./target.csv', index=False, encoding='utf-8-sig')
+    test_df.to_csv('./test.csv', index=False, encoding='utf-8-sig')
 
     print('=' * 10, 'MESSAGE: DATA LOADED SUCCESSFULLY', '=' * 10)
     print('|TRAIN| : {} |VALID| : {} |TEST| : {}'.format(train_df.shape, valid_df.shape, test_df.shape))
@@ -248,6 +256,7 @@ def get_data(config):
     print()
 
     return train_df, valid_df, test_df, train_y, valid_y, sample
+
 
 if __name__ == '__main__':
     config = {'text' : 'embedding',
