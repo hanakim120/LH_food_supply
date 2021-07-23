@@ -1,7 +1,12 @@
 # 🎊Quick start🎉
+Got 14th(top 3%) on public score.
+```buildoutcfg
+python train.py --model lr --holiday_length --weather --outlier
+```
+
 ## Training
 ```buildoutcfg
-python train.py --model lr
+python train.py --model catboost --depth 3 --lr 1e-1
 ```
 
 ```buildoutcfg
