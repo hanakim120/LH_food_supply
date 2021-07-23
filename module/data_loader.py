@@ -82,7 +82,7 @@ def get_data(config):
             if df.loc[i, '최고기온'] > 33:
                 df.loc[i, '폭염'] = 1
 
-        df.drop(columns=['평균기온', '습도', '풍속', '최고기온'], inplace=True)
+        df.drop(columns=['습도', '풍속', '최고기온'], inplace=True)
     # weather =================================
 
     # dust ====================================

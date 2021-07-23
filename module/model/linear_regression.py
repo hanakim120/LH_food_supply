@@ -18,7 +18,8 @@ def train_lr(
         dinner_drop_col
          ):
 
-    print('Columns: ', np.array(train_df.columns))
+    print('Lunch Columns: ', np.array(train_df.drop(columns=lunch_drop_col).columns))
+    print('Dinner Columns: ', np.array(train_df.drop(columns=dinner_drop_col).columns))
 
     if config.k > 0 :
         train_df = pd.concat([train_df, valid_df], axis=0)

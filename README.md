@@ -1,7 +1,7 @@
 # 🎊Quick start🎉
 ## Training
 ```buildoutcfg
-python train.py --model lr --text menu
+python train.py --model lr
 ```
 
 ```buildoutcfg
@@ -38,50 +38,28 @@ TOTAL SCORE : 67.40648970753254
 
 ```
 
-## Making dummy data
-```buildoutcfg
->>python ./utils/dummy.py --load_fn ./data/corpus.train.txt --save_fn ./data/corpus.train.dummy.txt --iter 5 --verbose 300
-```
-```buildoutcfg
-|ITERATION 1|
-Train completed on 0 datas
-Train completed on 300 datas
-Train completed on 600 datas
-Train completed on 900 datas
-Train completed on 1200 datas
-Train completed on 1500 datas
-Train completed on 1800 datas
-Train completed on 2100 datas
-Train completed on 2400 datas
-Train completed on 2700 datas
-...
-|ITERATION 5|
-Train completed on 0 datas
-Train completed on 300 datas
-Train completed on 600 datas
-Train completed on 900 datas
-Train completed on 1200 datas
-Train completed on 1500 datas
-Train completed on 1800 datas
-Train completed on 2100 datas
-Train completed on 2400 datas
-Train completed on 2700 datas
-COMPLETED: 14721 data is augmented
-
-```
-
 # 📐Parameter tuning📚
 ## Common
 1. **model**: model selection. result file will be saved as "./data/submission_[model].csv"
               (catboost / lgbm / lr / rf / reg / tabnet)
-2. **text**: Method to preprocess text data 
+2. **text**: Method to preprocess text data (default: menu) 
              (embedding / menu / autoencode)
-3. **dim**: embedding dimension
-4. **dummy_corpus**: making dummy data using random permutation
-5. **seed**: random seed
-6. **k**: using k-fold when k > 0
-7. **verbose**: verbosity during training
-8. **epochs**: epochs
+3. **menu_fn**: menu embedding file name (csv format; default: embedding.oov)
+4. **train_size**: The number of datas which will be used for training
+5. **dim**: embedding dimension
+6. **pca_dim**: conduct PCA on the whole data when this parameter is larger than 0
+7. **dummy_cat**: transform categorical feateatures into dummy variables   
+8. **seed**: random seed
+9. **k**: using k-fold when k > 0
+10. **verbose**: verbosity during training
+11. **epochs**: epochs
+
+## Features
+1. **oov_cnt**: add the number of OOV(out of vocabulary) as a feature
+2. **weather**: add weather related features
+3. **holiday_length**: add holiday length before a day   
+4. **dust**: add dust feature  
+5. **feature_selection**: use only statistically valid features (cat / multicol / None)
 
 
 ## fasttext
@@ -125,6 +103,13 @@ COMPLETED: 14721 data is augmented
 7. **lgbm_epoch**: number of iteration(=number of estimators)
 8. **lr**: earning rate
 9. **depth**: growth stop criterion
+
+## Random Forest
+1. **n_est**: The number of estimators
+2. **min_samp**: minimum number of sample to split node
+
+## Regularized Regression
+1. **alpha**
 
 ## Experimental
 1. **sum_reduction**: sum all embedding values and divide into embedding dimension

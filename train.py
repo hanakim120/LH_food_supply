@@ -18,17 +18,21 @@ def define_argparser():
     p.add_argument('--model', type=str, required=True,
                    help='''model selection. result file will be saved as "./data/submission_[model].csv"
                    (catboost / lgbm / lr / rf / reg / tabnet)''')
-
     p.add_argument('--text', type=str, default='menu',
                    help='Method to preprocess text data (embedding / menu / autoencode)')
     p.add_argument('--train_size', type=int, default=1000)
     p.add_argument('--menu_fn', type=str, default='embedding.oov',
                    help='menu embedding file name (csv format)')
-    p.add_argument('--oov_cnt', action='store_true')
-    p.add_argument('--weather', action='store_true')
-    p.add_argument('--holiday_length', action='store_true')
-    p.add_argument('--dust', action='store_true')
-    p.add_argument('--outlier', action='store_true')
+    p.add_argument('--oov_cnt', action='store_true',
+                   help='add the number of OOV(out of vocabulary) as a feature')
+    p.add_argument('--weather', action='store_true',
+                   help='add weather related features')
+    p.add_argument('--holiday_length', action='store_true',
+                   help='add holiday length before a day')
+    p.add_argument('--dust', action='store_true',
+                   help='add dust feature')
+    p.add_argument('--outlier', action='store_true',
+                   help="remove outlier following fox's recommendation")
     p.add_argument('--dim', type=int, default=3,
                    help='embedding dimension')
     p.add_argument('--pca_dim', type=int, default=0,
@@ -267,9 +271,23 @@ def main(config):
     #     lunch_drop_col = ['월저녁평균', '요일저녁평균', '재택비율', 'breakfast_2', 'lunch_0', 'lunch_1', '공휴일길이']
     #     dinner_drop_col = ['요일점심평균', '월점심평균', '요일저녁평균', '전일대비증감', 'lunch_0', 'lunch_1']
     # else:
+    # Lunch
+    # Columns: ['요일' '출근' '휴가비율' '출장비율' '야근비율' '재택비율' 'year' 'month' 'day' 'week' '강수량'
+    #           '불쾌지수' '체감온도' '폭염' '요일점심평균' '월점심평균' '확진자수' '전일대비증감' '사망자수' 'lunch_0'
+    #           'lunch_1' 'lunch_2']
+    # Dinner
+    # Columns: ['요일' '공휴일전후' '공휴일길이' '출근' '휴가비율' '출장비율' '야근비율' '재택비율' 'year' 'month'
+    #           'day' 'week' '강수량' '불쾌지수' '체감온도' '폭염' '요일저녁평균' '월저녁평균' '확진자수' '전일대비증감'
+    #           '사망자수' 'dinner_0' 'dinner_1' 'dinner_2']
+
     if config.pca_dim <= 0:
-        lunch_drop_col = ['월저녁평균', '요일저녁평균']
-        dinner_drop_col = ['요일점심평균', '월점심평균']
+        lunch_drop_col = ['월저녁평균', '요일저녁평균', '공휴일길이', '공휴일전후',
+                          'breakfast_0', 'breakfast_1', 'breakfast_2',
+                          'dinner_1', 'dinner_2', 'dinner_0']
+        dinner_drop_col = ['요일점심평균', '월점심평균',
+                           'breakfast_0', 'breakfast_1', 'breakfast_2',
+                           'lunch_0', 'lunch_1', 'lunch_2',
+                           '재택비율', '휴가비율']
     else:
         lunch_drop_col, dinner_drop_col = [], []
 
